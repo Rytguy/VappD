@@ -312,13 +312,14 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Emergent Gmail Authentication"
-    - "Server Creation and Management"
-    - "Channel Management"
-    - "Real-time Messaging with WebSocket"
-    - "Presence System"
+    - "Calendar Events API"
+    - "Tasks/To-Do API"
+    - "Notes API"
+    - "Calendar UI"
+    - "To-Do/Tasks UI"
+    - "Notes UI"
   stuck_tasks: []
-  test_all: true
+  test_all: false
   test_priority: "high_first"
 
   - task: "WebRTC Voice Channel Join/Leave"
