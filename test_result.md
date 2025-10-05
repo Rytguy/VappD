@@ -330,6 +330,42 @@ test_plan:
         agent: "testing"
         comment: "WebSocket signaling endpoint implemented correctly in backend code but not accessible externally due to Kubernetes ingress configuration not supporting WebSocket connections. The endpoint code is functional - WebSocket connections timeout during handshake from external access. This is an infrastructure configuration issue, not a backend implementation issue."
 
+  - task: "Calendar Events API"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Implemented full Calendar Events CRUD API: POST/GET/PUT/DELETE /api/servers/{server_id}/events. Supports title, description, start/end times, assigned members, color coding, channel linking, and date range filtering. Backend restarted successfully."
+
+  - task: "Tasks/To-Do API"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Implemented full Tasks CRUD API: POST/GET/PUT/DELETE /api/servers/{server_id}/tasks. Supports title, description, assigned members, deadlines, priorities (low/medium/high), sub-tasks, progress tracking (0-100), and completion filtering."
+
+  - task: "Notes API"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Implemented full Notes CRUD API: POST/GET/PUT/DELETE /api/servers/{server_id}/notes. Supports title, markdown content, collaborative mode, creator/updater tracking, and timestamps."
+
 frontend:
   - task: "WebRTC Voice Channel UI"
     implemented: true
