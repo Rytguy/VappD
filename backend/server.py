@@ -325,7 +325,7 @@ async def send_message(channel_id: str, request: SendMessageRequest, authorizati
     return message
 
 @api_router.post("/messages/{message_id}/reactions")
-async def add_reaction(message_id: str, request: AddReactionRequest, authorization: Optional[str] = None, session_token: Optional[str] = Cookie(None)):
+async def add_reaction(message_id: str, request: AddReactionRequest, authorization: Optional[str] = Header(None), session_token: Optional[str] = Cookie(None)):
     """Add reaction to a message"""
     user = await get_current_user(authorization, session_token)
     if not user:
