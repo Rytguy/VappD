@@ -806,6 +806,22 @@ def main():
         webrtc_participants_success = test_webrtc_participants_management(test_channel_id)
         results["webrtc_participants"] = webrtc_participants_success
     
+    # Test Productivity Layer APIs (Calendar, Tasks, Notes)
+    if server_success and server_id:
+        print("\n🚀 Testing Productivity Layer APIs...")
+        
+        # Test Calendar Events API
+        calendar_success = test_calendar_events_api(server_id)
+        results["calendar_events"] = calendar_success
+        
+        # Test Tasks API
+        tasks_success = test_tasks_api(server_id)
+        results["tasks"] = tasks_success
+        
+        # Test Notes API
+        notes_success = test_notes_api(server_id)
+        results["notes"] = notes_success
+    
     # Print Summary
     print("\n" + "=" * 50)
     print("🌌 AstralLink Backend Test Results Summary")
