@@ -141,6 +141,129 @@ const Dashboard = ({ user, onLogout }) => {
     }
   };
 
+  // ===== PRODUCTIVITY FUNCTIONS =====
+  const loadEvents = async (serverId) => {
+    try {
+      const response = await axios.get(`${API}/servers/${serverId}/events`, { withCredentials: true });
+      setEvents(response.data);
+    } catch (error) {
+      console.error("Error loading events:", error);
+    }
+  };
+
+  const loadTasks = async (serverId) => {
+    try {
+      const response = await axios.get(`${API}/servers/${serverId}/tasks`, { withCredentials: true });
+      setTasks(response.data);
+    } catch (error) {
+      console.error("Error loading tasks:", error);
+    }
+  };
+
+  const loadNotes = async (serverId) => {
+    try {
+      const response = await axios.get(`${API}/servers/${serverId}/notes`, { withCredentials: true });
+      setNotes(response.data);
+    } catch (error) {
+      console.error("Error loading notes:", error);
+    }
+  };
+
+  const createEvent = async (eventData) => {
+    try {
+      const response = await axios.post(
+        `${API}/servers/${selectedServer.id}/events`,
+        eventData,
+        { withCredentials: true }
+      );
+      setEvents([...events, response.data]);
+      setShowCreateEvent(false);
+    } catch (error) {
+      console.error("Error creating event:", error);
+    }
+  };
+
+  const createTask = async (taskData) => {
+    try {
+      const response = await axios.post(
+        `${API}/servers/${selectedServer.id}/tasks`,
+        taskData,
+        { withCredentials: true }
+      );
+      setTasks([...tasks, response.data]);
+      setShowCreateTask(false);
+    } catch (error) {
+      console.error("Error creating task:", error);
+    }
+  };
+
+  const createNote = async (noteData) => {
+    try {
+      const response = await axios.post(
+        `${API}/servers/${selectedServer.id}/notes`,
+        noteData,
+        { withCredentials: true }
+      );
+      setNotes([...notes, response.data]);
+      setShowCreateNote(false);
+    } catch (error) {
+      console.error("Error creating note:", error);
+    }
+  };
+
+  const toggleTaskComplete = async (taskId, completed) => {
+    try {
+      await axios.put(
+        `${API}/servers/${selectedServer.id}/tasks/${taskId}`,
+        { completed },
+        { withCredentials: true }
+      );
+      setTasks(tasks.map(t => t.id === taskId ? { ...t, completed } : t));
+    } catch (error) {
+      console.error("Error updating task:", error);
+    }
+  };
+
+  const deleteTask = async (taskId) => {
+    try {
+      await axios.delete(
+        `${API}/servers/${selectedServer.id}/tasks/${taskId}`,
+        { withCredentials: true }
+      );
+      setTasks(tasks.filter(t => t.id !== taskId));
+    } catch (error) {
+      console.error("Error deleting task:", error);
+    }
+  };
+
+  const updateNote = async (noteId, content) => {
+    try {
+      await axios.put(
+        `${API}/servers/${selectedServer.id}/notes/${noteId}`,
+        { content },
+        { withCredentials: true }
+      );
+      setNotes(notes.map(n => n.id === noteId ? { ...n, content } : n));
+    } catch (error) {
+      console.error("Error updating note:", error);
+    }
+  };
+
+  const deleteNote = async (noteId) => {
+    try {
+      await axios.delete(
+        `${API}/servers/${selectedServer.id}/notes/${noteId}`,
+        { withCredentials: true }
+      );
+      setNotes(notes.filter(n => n.id !== noteId));
+      if (selectedNote?.id === noteId) {
+        setSelectedNote(null);
+      }
+    } catch (error) {
+      console.error("Error deleting note:", error);
+    }
+  };
+
   const connectWebSocket = (channelId) => {
     if (wsRef.current) {
       wsRef.current.close();
