@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, WebSocket, WebSocketDisconnect, HTTPException, Cookie, Response, Request
+from fastapi import FastAPI, APIRouter, WebSocket, WebSocketDisconnect, HTTPException, Cookie, Response, Request, Header
 from fastapi.responses import JSONResponse
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
