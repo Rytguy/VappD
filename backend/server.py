@@ -242,7 +242,7 @@ async def get_servers(authorization: Optional[str] = Header(None), session_token
     return [Server(**s) for s in servers]
 
 @api_router.get("/servers/{server_id}", response_model=Server)
-async def get_server(server_id: str, authorization: Optional[str] = None, session_token: Optional[str] = Cookie(None)):
+async def get_server(server_id: str, authorization: Optional[str] = Header(None), session_token: Optional[str] = Cookie(None)):
     """Get server details"""
     user = await get_current_user(authorization, session_token)
     if not user:
