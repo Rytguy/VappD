@@ -122,15 +122,18 @@ backend:
 
   - task: "Server Creation and Management"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Implemented POST /api/servers to create server, GET /api/servers to list user's servers, GET /api/servers/{server_id} to get server details. No roles system - everyone is a member."
+      - working: true
+        agent: "testing"
+        comment: "All server management endpoints working correctly. POST /api/servers creates server with default channels (general, voice-lounge). GET /api/servers lists user servers. GET /api/servers/{id} returns server details with proper member validation."
 
   - task: "Channel Management"
     implemented: true
