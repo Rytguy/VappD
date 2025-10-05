@@ -281,7 +281,7 @@ async def create_channel(server_id: str, request: CreateChannelRequest, authoriz
     return channel
 
 @api_router.get("/servers/{server_id}/channels", response_model=List[Channel])
-async def get_channels(server_id: str, authorization: Optional[str] = None, session_token: Optional[str] = Cookie(None)):
+async def get_channels(server_id: str, authorization: Optional[str] = Header(None), session_token: Optional[str] = Cookie(None)):
     """Get all channels in a server"""
     user = await get_current_user(authorization, session_token)
     if not user:
