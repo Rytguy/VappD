@@ -137,15 +137,18 @@ backend:
 
   - task: "Channel Management"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Implemented POST /api/servers/{server_id}/channels to create channels, GET /api/servers/{server_id}/channels to list channels. Supports text, voice, video channel types."
+      - working: true
+        agent: "testing"
+        comment: "Channel management fully functional. Default channels (general, voice-lounge) created automatically. Successfully tested creating text, voice, and video channels. GET /api/servers/{id}/channels lists all channels correctly."
 
   - task: "Real-time Messaging with WebSocket"
     implemented: true
