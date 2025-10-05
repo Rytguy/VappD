@@ -58,6 +58,17 @@ const Dashboard = ({ user, onLogout }) => {
   const audioContextRef = useRef(null);
   const [speakingUsers, setSpeakingUsers] = useState(new Set());
 
+  // Productivity State
+  const [currentView, setCurrentView] = useState("channels"); // channels, calendar, tasks, notes
+  const [events, setEvents] = useState([]);
+  const [tasks, setTasks] = useState([]);
+  const [notes, setNotes] = useState([]);
+  const [showCreateEvent, setShowCreateEvent] = useState(false);
+  const [showCreateTask, setShowCreateTask] = useState(false);
+  const [showCreateNote, setShowCreateNote] = useState(false);
+  const [selectedNote, setSelectedNote] = useState(null);
+  const [calendarView, setCalendarView] = useState("month"); // day, week, month
+
   useEffect(() => {
     loadServers();
   }, []);
