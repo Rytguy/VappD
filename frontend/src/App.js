@@ -921,6 +921,191 @@ const Dashboard = ({ user, onLogout }) => {
             </>
           )}
         </div>
+      ) : currentView === "calendar" ? (
+        <div className="flex-1 flex flex-col z-10">
+          <div className="h-16 cosmic-panel-light flex items-center justify-between px-6 border-b border-astral-hover">
+            <div className="flex items-center">
+              <span className="text-xl mr-2">📅</span>
+              <span className="font-semibold text-white">Calendar</span>
+            </div>
+            <button
+              onClick={() => setShowCreateEvent(true)}
+              className="cosmic-btn px-4 py-2 text-sm"
+            >
+              + New Event
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto p-6">
+            <div className="max-w-4xl mx-auto">
+              <h3 className="text-xl font-bold text-white mb-4">Upcoming Events</h3>
+              {events.length === 0 ? (
+                <p className="text-gray-400 text-center py-8">No events scheduled</p>
+              ) : (
+                <div className="space-y-3">
+                  {events.map(event => (
+                    <div key={event.id} className="cosmic-panel p-4 rounded-lg border-l-4" style={{ borderColor: event.color }}>
+                      <h4 className="font-bold text-white mb-1">{event.title}</h4>
+                      {event.description && <p className="text-gray-300 text-sm mb-2">{event.description}</p>}
+                      <div className="flex items-center text-sm text-gray-400 space-x-4">
+                        <span>🕐 {new Date(event.start_time).toLocaleString()}</span>
+                        {event.assigned_to.length > 0 && (
+                          <span>👥 {event.assigned_to.length} assigned</span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : currentView === "tasks" ? (
+        <div className="flex-1 flex flex-col z-10">
+          <div className="h-16 cosmic-panel-light flex items-center justify-between px-6 border-b border-astral-hover">
+            <div className="flex items-center">
+              <span className="text-xl mr-2">📝</span>
+              <span className="font-semibold text-white">To-Do</span>
+            </div>
+            <button
+              onClick={() => setShowCreateTask(true)}
+              className="cosmic-btn px-4 py-2 text-sm"
+            >
+              + New Task
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto p-6">
+            <div className="max-w-4xl mx-auto">
+              <div className="mb-6">
+                <h3 className="text-lg font-bold text-white mb-3">Active Tasks</h3>
+                {tasks.filter(t => !t.completed).length === 0 ? (
+                  <p className="text-gray-400 text-center py-4">No active tasks</p>
+                ) : (
+                  <div className="space-y-2">
+                    {tasks.filter(t => !t.completed).map(task => (
+                      <div key={task.id} className="cosmic-panel p-4 rounded-lg flex items-start space-x-3">
+                        <input
+                          type="checkbox"
+                          checked={task.completed}
+                          onChange={() => toggleTaskComplete(task.id, !task.completed)}
+                          className="mt-1 w-5 h-5 cursor-pointer"
+                        />
+                        <div className="flex-1">
+                          <h4 className="font-semibold text-white mb-1">{task.title}</h4>
+                          {task.description && <p className="text-gray-300 text-sm mb-2">{task.description}</p>}
+                          <div className="flex items-center text-xs text-gray-400 space-x-3">
+                            <span className={`px-2 py-1 rounded ${
+                              task.priority === 'high' ? 'bg-red-900' : task.priority === 'medium' ? 'bg-yellow-900' : 'bg-green-900'
+                            }`}>
+                              {task.priority.toUpperCase()}
+                            </span>
+                            {task.deadline && <span>⏰ {new Date(task.deadline).toLocaleDateString()}</span>}
+                            {task.assigned_to.length > 0 && <span>👥 {task.assigned_to.length}</span>}
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => deleteTask(task.id)}
+                          className="text-red-400 hover:text-red-300"
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              
+              <div>
+                <h3 className="text-lg font-bold text-white mb-3">Completed Tasks</h3>
+                {tasks.filter(t => t.completed).length === 0 ? (
+                  <p className="text-gray-400 text-center py-4">No completed tasks</p>
+                ) : (
+                  <div className="space-y-2">
+                    {tasks.filter(t => t.completed).map(task => (
+                      <div key={task.id} className="cosmic-panel p-4 rounded-lg flex items-start space-x-3 opacity-60">
+                        <input
+                          type="checkbox"
+                          checked={task.completed}
+                          onChange={() => toggleTaskComplete(task.id, !task.completed)}
+                          className="mt-1 w-5 h-5 cursor-pointer"
+                        />
+                        <div className="flex-1">
+                          <h4 className="font-semibold text-white line-through">{task.title}</h4>
+                        </div>
+                        <button
+                          onClick={() => deleteTask(task.id)}
+                          className="text-red-400 hover:text-red-300"
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : currentView === "notes" ? (
+        <div className="flex-1 flex z-10">
+          <div className="w-64 cosmic-panel-light flex flex-col border-r border-astral-hover">
+            <div className="p-4 border-b border-astral-hover flex justify-between items-center">
+              <h3 className="font-semibold text-white">Notes</h3>
+              <button
+                onClick={() => setShowCreateNote(true)}
+                className="text-astral-accent hover:text-white text-xl"
+              >
+                +
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-2">
+              {notes.map(note => (
+                <button
+                  key={note.id}
+                  onClick={() => setSelectedNote(note)}
+                  className={`w-full text-left px-3 py-3 rounded mb-2 transition-colors ${
+                    selectedNote?.id === note.id ? 'bg-astral-hover text-white' : 'text-gray-300 hover:bg-astral-hover'
+                  }`}
+                >
+                  <div className="font-semibold text-sm truncate">{note.title}</div>
+                  <div className="text-xs text-gray-400 mt-1">
+                    {new Date(note.updated_at).toLocaleDateString()}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="flex-1 flex flex-col">
+            {selectedNote ? (
+              <>
+                <div className="h-16 cosmic-panel-light flex items-center justify-between px-6 border-b border-astral-hover">
+                  <div className="flex items-center">
+                    <span className="text-xl mr-2">🗒️</span>
+                    <span className="font-semibold text-white">{selectedNote.title}</span>
+                  </div>
+                  <button
+                    onClick={() => deleteNote(selectedNote.id)}
+                    className="text-red-400 hover:text-red-300"
+                  >
+                    🗑️ Delete
+                  </button>
+                </div>
+                <div className="flex-1 p-6">
+                  <textarea
+                    value={selectedNote.content}
+                    onChange={(e) => setSelectedNote({ ...selectedNote, content: e.target.value })}
+                    onBlur={() => updateNote(selectedNote.id, selectedNote.content)}
+                    className="w-full h-full bg-astral-dark text-white p-4 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-astral-accent"
+                    placeholder="Start writing... (Markdown supported)"
+                  />
+                </div>
+              </>
+            ) : (
+              <div className="flex-1 flex items-center justify-center">
+                <p className="text-gray-400">Select a note or create a new one</p>
+              </div>
+            )}
+          </div>
+        </div>
       ) : (
         <div className="flex-1 flex items-center justify-center z-10">
           <div className="text-center">
