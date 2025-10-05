@@ -285,8 +285,83 @@ test_plan:
   test_all: true
   test_priority: "high_first"
 
+  - task: "WebRTC Voice Channel Join/Leave"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Implemented POST /api/channels/{channel_id}/join and POST /api/channels/{channel_id}/leave for managing voice/video channel participation. Stores participants in MongoDB."
+
+  - task: "WebRTC Participants Management"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Implemented GET /api/channels/{channel_id}/participants to get all participants with user details. POST /api/channels/{channel_id}/toggle-mute and POST /api/channels/{channel_id}/toggle-video for controlling media state."
+
+  - task: "WebRTC Signaling WebSocket"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Implemented WebSocket signaling at /ws/signaling/{user_id} for WebRTC offer/answer/ICE candidate exchange between peers."
+
+frontend:
+  - task: "WebRTC Voice Channel UI"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/App.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Full voice channel UI with Join/Leave buttons, participant grid with profile pictures, mute/unmute controls, speaking indicators (pulsing ring), and audio level monitoring."
+
+  - task: "WebRTC Video Channel UI"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/App.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Video channel with 2x2 grid layout for video streams, local preview with 'You' label, camera on/off toggle, muted indicator overlay, and remote video rendering."
+
+  - task: "WebRTC Peer-to-Peer Connection"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/App.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Full WebRTC implementation with getUserMedia, RTCPeerConnection for mesh topology, signaling via WebSocket, offer/answer/ICE candidate handling, and audio analyzer for speaking detection."
+
 agent_communication:
   - agent: "main"
     message: "Phase 1 Core Foundation implemented: Emergent Auth, real-time WebSocket chat, server/channel management, presence system, and stunning cosmic UI. Backend uses httpx for auth calls, WebSocket for real-time, MongoDB for data. Frontend has full dashboard with 3-column layout. Ready for backend testing."
+  - agent: "main"
+    message: "Phase 2 WebRTC Implementation Complete: Added full voice and video channel support with WebRTC peer-to-peer connections. Backend has join/leave endpoints, participant management, mute/video toggles, and WebSocket signaling for ICE/SDP exchange. Frontend has voice channel UI with speaking indicators, video channel with grid layout, getUserMedia integration, audio analysis, and complete peer connection management. Ready for testing."
   - agent: "testing"
     message: "BACKEND TESTING COMPLETE: All 6 backend tasks are now working correctly. Fixed critical authentication issue by adding Header() dependency to all endpoints. All APIs tested successfully: auth, server management, channel management, messaging, reactions, and presence system. Backend is fully functional and ready for production."
