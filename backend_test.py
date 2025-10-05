@@ -11,8 +11,8 @@ from datetime import datetime
 
 # Configuration
 BASE_URL = "https://spacewave-1.preview.emergentagent.com/api"
-SESSION_TOKEN = "test_session_1759703577584"  # From mongosh setup
-USER_ID = "test-user-1759703577584"
+SESSION_TOKEN = "T-ov0ehZaDXcT8JRJUW9m9Nxy2_wDKggcbhItRohxQk"  # From existing session
+USER_ID = "e03e0be4-8fe4-4729-ae43-4a29008a02a8"
 
 # Headers for authenticated requests
 AUTH_HEADERS = {
