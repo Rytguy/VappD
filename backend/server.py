@@ -83,6 +83,97 @@ class VoiceChannelParticipant(BaseModel):
     is_video_enabled: bool = False
     joined_at: datetime
 
+# ===== PRODUCTIVITY MODELS =====
+class CalendarEvent(BaseModel):
+    id: str
+    server_id: str
+    title: str
+    description: str = ""
+    start_time: datetime
+    end_time: datetime
+    assigned_to: List[str] = []  # user IDs
+    color: str = "#9F86FF"  # Default cosmic purple
+    channel_link: Optional[str] = None  # Link to a channel
+    created_by: str
+    created_at: datetime
+
+class SubTask(BaseModel):
+    id: str
+    title: str
+    completed: bool = False
+
+class Task(BaseModel):
+    id: str
+    server_id: str
+    title: str
+    description: str = ""
+    assigned_to: List[str] = []  # user IDs
+    deadline: Optional[datetime] = None
+    completed: bool = False
+    priority: str = "medium"  # low, medium, high
+    sub_tasks: List[SubTask] = []
+    progress: int = 0  # 0-100
+    created_by: str
+    created_at: datetime
+    updated_at: datetime
+
+class Note(BaseModel):
+    id: str
+    server_id: str
+    title: str
+    content: str = ""  # Markdown content
+    collaborative: bool = True
+    created_by: str
+    updated_by: str
+    created_at: datetime
+    updated_at: datetime
+
+# ===== REQUEST MODELS =====
+class CreateEventRequest(BaseModel):
+    title: str
+    description: str = ""
+    start_time: datetime
+    end_time: datetime
+    assigned_to: List[str] = []
+    color: str = "#9F86FF"
+    channel_link: Optional[str] = None
+
+class UpdateEventRequest(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    start_time: Optional[datetime] = None
+    end_time: Optional[datetime] = None
+    assigned_to: Optional[List[str]] = None
+    color: Optional[str] = None
+    channel_link: Optional[str] = None
+
+class CreateTaskRequest(BaseModel):
+    title: str
+    description: str = ""
+    assigned_to: List[str] = []
+    deadline: Optional[datetime] = None
+    priority: str = "medium"
+
+class UpdateTaskRequest(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    assigned_to: Optional[List[str]] = None
+    deadline: Optional[datetime] = None
+    completed: Optional[bool] = None
+    priority: Optional[str] = None
+    sub_tasks: Optional[List[SubTask]] = None
+    progress: Optional[int] = None
+
+class CreateNoteRequest(BaseModel):
+    title: str
+    content: str = ""
+    collaborative: bool = True
+
+class UpdateNoteRequest(BaseModel):
+    title: Optional[str] = None
+    content: Optional[str] = None
+    collaborative: Optional[bool] = None
+
 # ===== AUTH HELPERS =====
 async def get_current_user(authorization: Optional[str] = None, session_token: Optional[str] = None) -> Optional[User]:
     """Get current user from either Authorization header or session_token cookie"""
