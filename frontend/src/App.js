@@ -1241,6 +1241,220 @@ const Dashboard = ({ user, onLogout }) => {
           </div>
         </div>
       )}
+
+      {/* Create Event Modal */}
+      {showCreateEvent && (
+        <EventModal
+          onClose={() => setShowCreateEvent(false)}
+          onCreate={createEvent}
+          members={members}
+        />
+      )}
+
+      {/* Create Task Modal */}
+      {showCreateTask && (
+        <TaskModal
+          onClose={() => setShowCreateTask(false)}
+          onCreate={createTask}
+          members={members}
+        />
+      )}
+
+      {/* Create Note Modal */}
+      {showCreateNote && (
+        <NoteModal
+          onClose={() => setShowCreateNote(false)}
+          onCreate={createNote}
+        />
+      )}
+    </div>
+  );
+};
+
+// ===== PRODUCTIVITY MODALS =====
+const EventModal = ({ onClose, onCreate, members }) => {
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [startTime, setStartTime] = useState("");
+  const [endTime, setEndTime] = useState("");
+  const [color, setColor] = useState("#9F86FF");
+
+  const handleSubmit = () => {
+    if (!title.trim() || !startTime || !endTime) return;
+    onCreate({
+      title,
+      description,
+      start_time: new Date(startTime).toISOString(),
+      end_time: new Date(endTime).toISOString(),
+      color,
+      assigned_to: []
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="cosmic-panel p-6 rounded-lg w-96 max-h-[80vh] overflow-y-auto">
+        <h2 className="text-xl font-bold mb-4 text-white">📅 Create Event</h2>
+        <input
+          type="text"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="Event title"
+          className="cosmic-input w-full px-4 py-2 rounded mb-3"
+          autoFocus
+        />
+        <textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="Description (optional)"
+          className="cosmic-input w-full px-4 py-2 rounded mb-3"
+          rows="3"
+        />
+        <label className="block text-gray-300 text-sm mb-1">Start Time</label>
+        <input
+          type="datetime-local"
+          value={startTime}
+          onChange={(e) => setStartTime(e.target.value)}
+          className="cosmic-input w-full px-4 py-2 rounded mb-3"
+        />
+        <label className="block text-gray-300 text-sm mb-1">End Time</label>
+        <input
+          type="datetime-local"
+          value={endTime}
+          onChange={(e) => setEndTime(e.target.value)}
+          className="cosmic-input w-full px-4 py-2 rounded mb-3"
+        />
+        <label className="block text-gray-300 text-sm mb-1">Color</label>
+        <input
+          type="color"
+          value={color}
+          onChange={(e) => setColor(e.target.value)}
+          className="w-full h-10 rounded cursor-pointer mb-4"
+        />
+        <div className="flex space-x-2">
+          <button
+            onClick={handleSubmit}
+            className="cosmic-btn flex-1 py-2"
+            disabled={!title.trim() || !startTime || !endTime}
+          >
+            Create
+          </button>
+          <button onClick={onClose} className="cosmic-btn-secondary flex-1 py-2">
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const TaskModal = ({ onClose, onCreate, members }) => {
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [priority, setPriority] = useState("medium");
+  const [deadline, setDeadline] = useState("");
+
+  const handleSubmit = () => {
+    if (!title.trim()) return;
+    onCreate({
+      title,
+      description,
+      priority,
+      deadline: deadline ? new Date(deadline).toISOString() : null,
+      assigned_to: []
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="cosmic-panel p-6 rounded-lg w-96">
+        <h2 className="text-xl font-bold mb-4 text-white">📝 Create Task</h2>
+        <input
+          type="text"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="Task title"
+          className="cosmic-input w-full px-4 py-2 rounded mb-3"
+          autoFocus
+        />
+        <textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="Description (optional)"
+          className="cosmic-input w-full px-4 py-2 rounded mb-3"
+          rows="3"
+        />
+        <label className="block text-gray-300 text-sm mb-1">Priority</label>
+        <select
+          value={priority}
+          onChange={(e) => setPriority(e.target.value)}
+          className="cosmic-input w-full px-4 py-2 rounded mb-3"
+        >
+          <option value="low">Low</option>
+          <option value="medium">Medium</option>
+          <option value="high">High</option>
+        </select>
+        <label className="block text-gray-300 text-sm mb-1">Deadline (optional)</label>
+        <input
+          type="datetime-local"
+          value={deadline}
+          onChange={(e) => setDeadline(e.target.value)}
+          className="cosmic-input w-full px-4 py-2 rounded mb-4"
+        />
+        <div className="flex space-x-2">
+          <button
+            onClick={handleSubmit}
+            className="cosmic-btn flex-1 py-2"
+            disabled={!title.trim()}
+          >
+            Create
+          </button>
+          <button onClick={onClose} className="cosmic-btn-secondary flex-1 py-2">
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const NoteModal = ({ onClose, onCreate }) => {
+  const [title, setTitle] = useState("");
+
+  const handleSubmit = () => {
+    if (!title.trim()) return;
+    onCreate({
+      title,
+      content: "",
+      collaborative: true
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="cosmic-panel p-6 rounded-lg w-96">
+        <h2 className="text-xl font-bold mb-4 text-white">🗒️ Create Note</h2>
+        <input
+          type="text"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="Note title"
+          className="cosmic-input w-full px-4 py-2 rounded mb-4"
+          autoFocus
+        />
+        <div className="flex space-x-2">
+          <button
+            onClick={handleSubmit}
+            className="cosmic-btn flex-1 py-2"
+            disabled={!title.trim()}
+          >
+            Create
+          </button>
+          <button onClick={onClose} className="cosmic-btn-secondary flex-1 py-2">
+            Cancel
+          </button>
+        </div>
+      </div>
     </div>
   );
 };
