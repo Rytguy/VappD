@@ -369,39 +369,48 @@ test_plan:
 
   - task: "Calendar Events API"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Implemented full Calendar Events CRUD API: POST/GET/PUT/DELETE /api/servers/{server_id}/events. Supports title, description, start/end times, assigned members, color coding, channel linking, and date range filtering. Backend restarted successfully."
+      - working: true
+        agent: "testing"
+        comment: "BACKEND TESTING COMPLETE: Calendar Events API fully functional. All CRUD operations tested successfully: POST creates events with title, description, start/end times, color, and assignments. GET lists events and retrieves specific events. PUT updates event properties. DELETE removes events. Authentication required for all endpoints. Error handling verified for invalid server/event IDs and missing required fields."
 
   - task: "Tasks/To-Do API"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Implemented full Tasks CRUD API: POST/GET/PUT/DELETE /api/servers/{server_id}/tasks. Supports title, description, assigned members, deadlines, priorities (low/medium/high), sub-tasks, progress tracking (0-100), and completion filtering."
+      - working: true
+        agent: "testing"
+        comment: "BACKEND TESTING COMPLETE: Tasks API fully functional. All CRUD operations tested successfully: POST creates tasks with title, description, priority, deadline, and assignments. GET lists tasks with optional completed filter. PUT updates task properties including completion status and progress. DELETE removes tasks. Tested priority levels (high/medium/low), completion filtering (completed=true/false), and progress tracking (0-100%). Authentication and error handling verified."
 
   - task: "Notes API"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Implemented full Notes CRUD API: POST/GET/PUT/DELETE /api/servers/{server_id}/notes. Supports title, markdown content, collaborative mode, creator/updater tracking, and timestamps."
+      - working: true
+        agent: "testing"
+        comment: "BACKEND TESTING COMPLETE: Notes API fully functional. All CRUD operations tested successfully: POST creates notes with title, markdown content, and collaborative mode. GET lists notes and retrieves specific notes. PUT updates note content and tracks updater. DELETE removes notes. Tested markdown content handling, collaborative mode toggle, creator/updater tracking, and timestamp management. Authentication and error handling verified."
 
 frontend:
   - task: "WebRTC Voice Channel UI"
