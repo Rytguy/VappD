@@ -259,7 +259,7 @@ async def get_server(server_id: str, authorization: Optional[str] = Header(None)
 
 # ===== CHANNEL ROUTES =====
 @api_router.post("/servers/{server_id}/channels", response_model=Channel)
-async def create_channel(server_id: str, request: CreateChannelRequest, authorization: Optional[str] = None, session_token: Optional[str] = Cookie(None)):
+async def create_channel(server_id: str, request: CreateChannelRequest, authorization: Optional[str] = Header(None), session_token: Optional[str] = Cookie(None)):
     """Create a new channel in a server"""
     user = await get_current_user(authorization, session_token)
     if not user:
