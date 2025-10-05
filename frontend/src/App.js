@@ -77,6 +77,9 @@ const Dashboard = ({ user, onLogout }) => {
     if (selectedServer) {
       loadChannels(selectedServer.id);
       loadMembers(selectedServer.id);
+      loadEvents(selectedServer.id);
+      loadTasks(selectedServer.id);
+      loadNotes(selectedServer.id);
     }
   }, [selectedServer]);
 
