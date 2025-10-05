@@ -364,7 +364,7 @@ async def update_status(status: str, authorization: Optional[str] = Header(None)
     return {"success": True}
 
 @api_router.get("/servers/{server_id}/members")
-async def get_server_members(server_id: str, authorization: Optional[str] = None, session_token: Optional[str] = Cookie(None)):
+async def get_server_members(server_id: str, authorization: Optional[str] = Header(None), session_token: Optional[str] = Cookie(None)):
     """Get all members of a server with their status"""
     user = await get_current_user(authorization, session_token)
     if not user:
