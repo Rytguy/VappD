@@ -75,6 +75,14 @@ class SendMessageRequest(BaseModel):
 class AddReactionRequest(BaseModel):
     emoji: str
 
+class VoiceChannelParticipant(BaseModel):
+    id: str
+    channel_id: str
+    user_id: str
+    is_muted: bool = False
+    is_video_enabled: bool = False
+    joined_at: datetime
+
 # ===== AUTH HELPERS =====
 async def get_current_user(authorization: Optional[str] = None, session_token: Optional[str] = None) -> Optional[User]:
     """Get current user from either Authorization header or session_token cookie"""
