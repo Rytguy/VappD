@@ -297,7 +297,7 @@ async def get_channels(server_id: str, authorization: Optional[str] = Header(Non
 
 # ===== MESSAGE ROUTES =====
 @api_router.get("/channels/{channel_id}/messages", response_model=List[Message])
-async def get_messages(channel_id: str, limit: int = 50, authorization: Optional[str] = None, session_token: Optional[str] = Cookie(None)):
+async def get_messages(channel_id: str, limit: int = 50, authorization: Optional[str] = Header(None), session_token: Optional[str] = Cookie(None)):
     """Get messages from a channel"""
     user = await get_current_user(authorization, session_token)
     if not user:
