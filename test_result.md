@@ -268,6 +268,42 @@ frontend:
         agent: "main"
         comment: "Full cosmic dark theme with animated starfield background, purple accent colors (#9F86FF), smooth transitions, custom scrollbars, and gradient buttons matching AstralLink design specs."
 
+  - task: "Calendar UI"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/App.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Calendar view accessible from sidebar. Shows upcoming events with color-coded borders, event details (title, description, date/time, assigned members). Modal for creating events with title, description, start/end time, color picker. Integrated with backend API."
+
+  - task: "To-Do/Tasks UI"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/App.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "To-Do list view accessible from sidebar. Shows active and completed tasks separately. Checkbox to mark complete/incomplete, priority badges (high/medium/low), deadline display, assigned members count, delete button. Modal for creating tasks with title, description, priority, deadline. Integrated with backend API."
+
+  - task: "Notes UI"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/App.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Notes view with 2-column layout: notes list on left, editor on right. Click note to open in editor. Textarea for markdown content with auto-save on blur. Modal for creating notes. Delete button. Integrated with backend API."
+
 metadata:
   created_by: "main_agent"
   version: "1.0"
