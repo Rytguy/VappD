@@ -287,6 +287,192 @@ def test_presence_system(server_id):
         print(f"  ❌ Failed to update status - Status: {response.status_code}, Response: {response.text}")
         return False
 
+def test_webrtc_voice_channel(server_id):
+    """Test WebRTC voice channel join/leave functionality"""
+    print("\n🎤 Testing WebRTC Voice Channel Join/Leave...")
+    
+    # First, get the default voice channel created with the server
+    print("  Getting voice channels...")
+    response = requests.get(f"{BASE_URL}/servers/{server_id}/channels", headers=AUTH_HEADERS)
+    
+    if response.status_code != 200:
+        print(f"  ❌ Failed to get channels - Status: {response.status_code}")
+        return False, None
+    
+    channels = response.json()
+    voice_channel = None
+    for channel in channels:
+        if channel.get('type') == 'voice':
+            voice_channel = channel
+            break
+    
+    if not voice_channel:
+        print("  ❌ No voice channel found")
+        return False, None
+    
+    voice_channel_id = voice_channel.get('id')
+    print(f"  Found voice channel: {voice_channel.get('name')} (ID: {voice_channel_id})")
+    
+    # Test POST /api/channels/{channel_id}/join
+    print(f"  Testing POST /api/channels/{voice_channel_id}/join...")
+    response = requests.post(f"{BASE_URL}/channels/{voice_channel_id}/join", headers=AUTH_HEADERS)
+    
+    if response.status_code == 200:
+        participant = response.json()
+        print(f"  ✅ Successfully joined voice channel - Participant ID: {participant.get('id')}")
+        
+        # Test duplicate join (should return existing participant)
+        print("  Testing duplicate join (should return existing participant)...")
+        response = requests.post(f"{BASE_URL}/channels/{voice_channel_id}/join", headers=AUTH_HEADERS)
+        
+        if response.status_code == 200:
+            duplicate_participant = response.json()
+            print(f"  ✅ Duplicate join handled correctly - Same participant ID: {duplicate_participant.get('id')}")
+            
+            # Test POST /api/channels/{channel_id}/leave
+            print(f"  Testing POST /api/channels/{voice_channel_id}/leave...")
+            response = requests.post(f"{BASE_URL}/channels/{voice_channel_id}/leave", headers=AUTH_HEADERS)
+            
+            if response.status_code == 200:
+                result = response.json()
+                print(f"  ✅ Successfully left voice channel - Success: {result.get('success')}")
+                return True, voice_channel_id
+            else:
+                print(f"  ❌ Failed to leave voice channel - Status: {response.status_code}, Response: {response.text}")
+                return False, voice_channel_id
+        else:
+            print(f"  ❌ Duplicate join failed - Status: {response.status_code}, Response: {response.text}")
+            return False, voice_channel_id
+    else:
+        print(f"  ❌ Failed to join voice channel - Status: {response.status_code}, Response: {response.text}")
+        return False, voice_channel_id
+
+def test_webrtc_video_channel(server_id):
+    """Test WebRTC video channel functionality"""
+    print("\n📹 Testing WebRTC Video Channel...")
+    
+    # Create a video channel for testing
+    print("  Creating video channel for testing...")
+    video_channel_data = {
+        "name": "test-video-webrtc",
+        "type": "video"
+    }
+    
+    response = requests.post(f"{BASE_URL}/servers/{server_id}/channels", 
+                           headers=AUTH_HEADERS, 
+                           json=video_channel_data)
+    
+    if response.status_code != 200:
+        print(f"  ❌ Failed to create video channel - Status: {response.status_code}")
+        return False, None
+    
+    video_channel = response.json()
+    video_channel_id = video_channel.get('id')
+    print(f"  ✅ Video channel created - ID: {video_channel_id}")
+    
+    # Test joining video channel
+    print(f"  Testing POST /api/channels/{video_channel_id}/join...")
+    response = requests.post(f"{BASE_URL}/channels/{video_channel_id}/join", headers=AUTH_HEADERS)
+    
+    if response.status_code == 200:
+        participant = response.json()
+        print(f"  ✅ Successfully joined video channel - Participant ID: {participant.get('id')}")
+        return True, video_channel_id
+    else:
+        print(f"  ❌ Failed to join video channel - Status: {response.status_code}, Response: {response.text}")
+        return False, video_channel_id
+
+def test_webrtc_participants_management(channel_id):
+    """Test WebRTC participants management"""
+    print("\n👥 Testing WebRTC Participants Management...")
+    
+    # First join the channel
+    print(f"  Joining channel {channel_id} for participants testing...")
+    response = requests.post(f"{BASE_URL}/channels/{channel_id}/join", headers=AUTH_HEADERS)
+    
+    if response.status_code != 200:
+        print(f"  ❌ Failed to join channel - Status: {response.status_code}")
+        return False
+    
+    # Test GET /api/channels/{channel_id}/participants
+    print(f"  Testing GET /api/channels/{channel_id}/participants...")
+    response = requests.get(f"{BASE_URL}/channels/{channel_id}/participants", headers=AUTH_HEADERS)
+    
+    if response.status_code == 200:
+        participants = response.json()
+        print(f"  ✅ Retrieved {len(participants)} participants")
+        
+        if participants:
+            participant = participants[0]
+            print(f"    - Participant: {participant.get('user', {}).get('name')} (Muted: {participant.get('is_muted')}, Video: {participant.get('is_video_enabled')})")
+            
+            # Test POST /api/channels/{channel_id}/toggle-mute
+            print(f"  Testing POST /api/channels/{channel_id}/toggle-mute?is_muted=true...")
+            response = requests.post(f"{BASE_URL}/channels/{channel_id}/toggle-mute?is_muted=true", headers=AUTH_HEADERS)
+            
+            if response.status_code == 200:
+                result = response.json()
+                print(f"  ✅ Successfully muted - Success: {result.get('success')}")
+                
+                # Test unmute
+                print(f"  Testing POST /api/channels/{channel_id}/toggle-mute?is_muted=false...")
+                response = requests.post(f"{BASE_URL}/channels/{channel_id}/toggle-mute?is_muted=false", headers=AUTH_HEADERS)
+                
+                if response.status_code == 200:
+                    result = response.json()
+                    print(f"  ✅ Successfully unmuted - Success: {result.get('success')}")
+                    
+                    # Test POST /api/channels/{channel_id}/toggle-video
+                    print(f"  Testing POST /api/channels/{channel_id}/toggle-video?is_video_enabled=true...")
+                    response = requests.post(f"{BASE_URL}/channels/{channel_id}/toggle-video?is_video_enabled=true", headers=AUTH_HEADERS)
+                    
+                    if response.status_code == 200:
+                        result = response.json()
+                        print(f"  ✅ Successfully enabled video - Success: {result.get('success')}")
+                        
+                        # Test disable video
+                        print(f"  Testing POST /api/channels/{channel_id}/toggle-video?is_video_enabled=false...")
+                        response = requests.post(f"{BASE_URL}/channels/{channel_id}/toggle-video?is_video_enabled=false", headers=AUTH_HEADERS)
+                        
+                        if response.status_code == 200:
+                            result = response.json()
+                            print(f"  ✅ Successfully disabled video - Success: {result.get('success')}")
+                            
+                            # Verify changes by getting participants again
+                            print("  Verifying participant state changes...")
+                            response = requests.get(f"{BASE_URL}/channels/{channel_id}/participants", headers=AUTH_HEADERS)
+                            
+                            if response.status_code == 200:
+                                updated_participants = response.json()
+                                if updated_participants:
+                                    updated_participant = updated_participants[0]
+                                    print(f"  ✅ Participant state verified - Muted: {updated_participant.get('is_muted')}, Video: {updated_participant.get('is_video_enabled')}")
+                                    return True
+                                else:
+                                    print("  ❌ No participants found after state changes")
+                                    return False
+                            else:
+                                print(f"  ❌ Failed to verify participant state - Status: {response.status_code}")
+                                return False
+                        else:
+                            print(f"  ❌ Failed to disable video - Status: {response.status_code}")
+                            return False
+                    else:
+                        print(f"  ❌ Failed to enable video - Status: {response.status_code}")
+                        return False
+                else:
+                    print(f"  ❌ Failed to unmute - Status: {response.status_code}")
+                    return False
+            else:
+                print(f"  ❌ Failed to mute - Status: {response.status_code}")
+                return False
+        else:
+            print("  ❌ No participants found")
+            return False
+    else:
+        print(f"  ❌ Failed to get participants - Status: {response.status_code}, Response: {response.text}")
+        return False
+
 def main():
     """Run all backend tests"""
     print("🌌 AstralLink Backend API Testing Suite")
@@ -298,7 +484,10 @@ def main():
         "channels": False,
         "messaging": False,
         "reactions": False,
-        "presence": False
+        "presence": False,
+        "webrtc_voice": False,
+        "webrtc_video": False,
+        "webrtc_participants": False
     }
     
     # Test Authentication
