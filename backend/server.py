@@ -308,7 +308,7 @@ async def get_messages(channel_id: str, limit: int = 50, authorization: Optional
     return [Message(**m) for m in messages]
 
 @api_router.post("/channels/{channel_id}/messages", response_model=Message)
-async def send_message(channel_id: str, request: SendMessageRequest, authorization: Optional[str] = None, session_token: Optional[str] = Cookie(None)):
+async def send_message(channel_id: str, request: SendMessageRequest, authorization: Optional[str] = Header(None), session_token: Optional[str] = Cookie(None)):
     """Send a message to a channel"""
     user = await get_current_user(authorization, session_token)
     if not user:
