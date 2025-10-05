@@ -527,6 +527,20 @@ def main():
     presence_success = test_presence_system(server_id)
     results["presence"] = presence_success
     
+    # Test WebRTC Voice Channel
+    webrtc_voice_success, voice_channel_id = test_webrtc_voice_channel(server_id)
+    results["webrtc_voice"] = webrtc_voice_success
+    
+    # Test WebRTC Video Channel
+    webrtc_video_success, video_channel_id = test_webrtc_video_channel(server_id)
+    results["webrtc_video"] = webrtc_video_success
+    
+    # Test WebRTC Participants Management (use voice channel if available, otherwise video)
+    test_channel_id = voice_channel_id if voice_channel_id else video_channel_id
+    if test_channel_id:
+        webrtc_participants_success = test_webrtc_participants_management(test_channel_id)
+        results["webrtc_participants"] = webrtc_participants_success
+    
     # Print Summary
     print("\n" + "=" * 50)
     print("🌌 AstralLink Backend Test Results Summary")
