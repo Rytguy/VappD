@@ -167,15 +167,18 @@ backend:
 
   - task: "Message Reactions"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "medium"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Implemented POST /api/messages/{message_id}/reactions to add emoji reactions to messages"
+      - working: true
+        agent: "testing"
+        comment: "Message reactions working correctly. POST /api/messages/{id}/reactions successfully adds emoji reactions to messages. Tested with multiple emojis (🚀, ⭐). Reactions are properly stored and associated with user IDs."
 
   - task: "Presence System"
     implemented: true
