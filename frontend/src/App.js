@@ -544,53 +544,198 @@ const Dashboard = ({ user, onLogout }) => {
         </div>
       )}
 
-      {/* Main Chat Area */}
+      {/* Main Content Area */}
       {selectedChannel ? (
         <div className="flex-1 flex flex-col z-10">
           {/* Channel Header */}
-          <div className="h-16 cosmic-panel-light flex items-center px-6 border-b border-astral-hover">
-            <span className="text-xl mr-2">{getChannelIcon(selectedChannel.type)}</span>
-            <span className="font-semibold text-white">{selectedChannel.name}</span>
+          <div className="h-16 cosmic-panel-light flex items-center justify-between px-6 border-b border-astral-hover">
+            <div className="flex items-center">
+              <span className="text-xl mr-2">{getChannelIcon(selectedChannel.type)}</span>
+              <span className="font-semibold text-white">{selectedChannel.name}</span>
+            </div>
+            
+            {/* Voice/Video Controls */}
+            {(selectedChannel.type === "voice" || selectedChannel.type === "video") && (
+              <div className="flex items-center space-x-2">
+                {!inVoiceChannel ? (
+                  <button
+                    onClick={() => joinVoiceChannel(selectedChannel)}
+                    className="cosmic-btn px-4 py-2 text-sm"
+                  >
+                    {selectedChannel.type === "video" ? "📹 Join Video" : "🎙️ Join Voice"}
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      onClick={toggleMute}
+                      className={`px-4 py-2 rounded text-sm ${isMuted ? 'bg-red-600' : 'bg-astral-hover'} text-white`}
+                    >
+                      {isMuted ? "🔇 Unmute" : "🎤 Mute"}
+                    </button>
+                    {selectedChannel.type === "video" && (
+                      <button
+                        onClick={toggleVideo}
+                        className={`px-4 py-2 rounded text-sm ${!isVideoEnabled ? 'bg-red-600' : 'bg-astral-hover'} text-white`}
+                      >
+                        {isVideoEnabled ? "📹 Camera On" : "📹 Camera Off"}
+                      </button>
+                    )}
+                    <button
+                      onClick={leaveVoiceChannel}
+                      className="px-4 py-2 rounded text-sm bg-red-600 text-white"
+                    >
+                      ❌ Leave
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
           </div>
 
-          {/* Messages Area */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            {messages.map(message => {
-              const sender = members.find(m => m.id === message.user_id);
-              return (
-                <div key={message.id} className="flex space-x-3">
-                  <div className="w-10 h-10 rounded-full bg-astral-accent flex items-center justify-center flex-shrink-0">
-                    {sender?.picture ? (
-                      <img src={sender.picture} alt={sender.name} className="w-full h-full rounded-full" />
+          {/* Content based on channel type */}
+          {selectedChannel.type === "text" ? (
+            <>
+              {/* Text Messages Area */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                {messages.map(message => {
+                  const sender = members.find(m => m.id === message.user_id);
+                  return (
+                    <div key={message.id} className="flex space-x-3">
+                      <div className="w-10 h-10 rounded-full bg-astral-accent flex items-center justify-center flex-shrink-0">
+                        {sender?.picture ? (
+                          <img src={sender.picture} alt={sender.name} className="w-full h-full rounded-full" />
+                        ) : (
+                          <span>👤</span>
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2 mb-1">
+                          <span className="font-semibold text-white">{sender?.name || "Unknown"}</span>
+                          <span className="text-xs text-gray-400">{formatTime(message.created_at)}</span>
+                        </div>
+                        <div className="text-gray-200">{message.content}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+                <div ref={messagesEndRef} />
+              </div>
+
+              {/* Message Input */}
+              <div className="p-4">
+                <form onSubmit={sendMessage}>
+                  <input
+                    type="text"
+                    value={messageInput}
+                    onChange={(e) => setMessageInput(e.target.value)}
+                    placeholder={`Message #${selectedChannel.name}`}
+                    className="w-full cosmic-input px-4 py-3 rounded-lg"
+                  />
+                </form>
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Voice/Video Channel View */}
+              <div className="flex-1 overflow-y-auto p-6">
+                {!inVoiceChannel ? (
+                  <div className="h-full flex items-center justify-center">
+                    <div className="text-center">
+                      <div className="text-6xl mb-4">
+                        {selectedChannel.type === "video" ? "📹" : "🎙️"}
+                      </div>
+                      <h3 className="text-2xl font-bold text-white mb-2">
+                        {selectedChannel.type === "video" ? "Video Channel" : "Voice Channel"}
+                      </h3>
+                      <p className="text-gray-400 mb-6">
+                        Click "Join {selectedChannel.type === "video" ? "Video" : "Voice"}" to connect
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="h-full">
+                    {selectedChannel.type === "video" ? (
+                      /* Video Grid */
+                      <div className="grid grid-cols-2 gap-4 h-full">
+                        {/* Local Video */}
+                        <div className="relative bg-astral-dark rounded-lg overflow-hidden">
+                          <video
+                            ref={localVideoRef}
+                            autoPlay
+                            muted
+                            playsInline
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute bottom-4 left-4 bg-black bg-opacity-50 px-3 py-1 rounded">
+                            <span className="text-white text-sm">{user.name} (You)</span>
+                          </div>
+                          {isMuted && (
+                            <div className="absolute top-4 right-4 bg-red-600 p-2 rounded-full">
+                              <span>🔇</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Remote Videos */}
+                        {Object.entries(remoteStreams).map(([userId, stream]) => {
+                          const participant = voiceParticipants.find(p => p.user_id === userId);
+                          return (
+                            <div key={userId} className="relative bg-astral-dark rounded-lg overflow-hidden">
+                              <video
+                                autoPlay
+                                playsInline
+                                className="w-full h-full object-cover"
+                                ref={el => {
+                                  if (el && stream) el.srcObject = stream;
+                                }}
+                              />
+                              <div className="absolute bottom-4 left-4 bg-black bg-opacity-50 px-3 py-1 rounded">
+                                <span className="text-white text-sm">
+                                  {participant?.user?.name || "Unknown"}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
                     ) : (
-                      <span>👤</span>
+                      /* Voice Channel Participants */
+                      <div className="flex flex-col items-center justify-center h-full space-y-6">
+                        <h3 className="text-xl text-gray-400">Voice Channel Participants</h3>
+                        <div className="grid grid-cols-4 gap-6">
+                          {/* Current User */}
+                          <div className="flex flex-col items-center">
+                            <div className={`w-24 h-24 rounded-full bg-astral-accent flex items-center justify-center mb-2 ${
+                              speakingUsers.has(user.id) ? 'ring-4 ring-green-500 animate-pulse' : ''
+                            }`}>
+                              <img src={user.picture} alt={user.name} className="w-full h-full rounded-full" />
+                            </div>
+                            <span className="text-white text-sm">{user.name} (You)</span>
+                            {isMuted && <span className="text-red-500 text-xs">🔇 Muted</span>}
+                          </div>
+
+                          {/* Other Participants */}
+                          {voiceParticipants.filter(p => p.user_id !== user.id).map(participant => (
+                            <div key={participant.user_id} className="flex flex-col items-center">
+                              <div className="w-24 h-24 rounded-full bg-astral-accent flex items-center justify-center mb-2">
+                                <img
+                                  src={participant.user?.picture}
+                                  alt={participant.user?.name}
+                                  className="w-full h-full rounded-full"
+                                />
+                              </div>
+                              <span className="text-white text-sm">{participant.user?.name}</span>
+                              {participant.is_muted && <span className="text-red-500 text-xs">🔇 Muted</span>}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     )}
                   </div>
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-2 mb-1">
-                      <span className="font-semibold text-white">{sender?.name || "Unknown"}</span>
-                      <span className="text-xs text-gray-400">{formatTime(message.created_at)}</span>
-                    </div>
-                    <div className="text-gray-200">{message.content}</div>
-                  </div>
-                </div>
-              );
-            })}
-            <div ref={messagesEndRef} />
-          </div>
-
-          {/* Message Input */}
-          <div className="p-4">
-            <form onSubmit={sendMessage}>
-              <input
-                type="text"
-                value={messageInput}
-                onChange={(e) => setMessageInput(e.target.value)}
-                placeholder={`Message #${selectedChannel.name}`}
-                className="w-full cosmic-input px-4 py-3 rounded-lg"
-              />
-            </form>
-          </div>
+                )}
+              </div>
+            </>
+          )}
         </div>
       ) : (
         <div className="flex-1 flex items-center justify-center z-10">
