@@ -1,34 +1,213 @@
-.App-logo {
-    height: 40vmin;
-    pointer-events: none;
+/* Cosmic Theme for AstralLink */
+
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+:root {
+  --astral-bg: #0D1117;
+  --astral-panel: #161B22;
+  --astral-accent: #9F86FF;
+  --astral-hover: #2F2B57;
+  --astral-highlight: #FFD369;
+  --astral-text: #E6E6E6;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-    .App-logo {
-        animation: App-logo-spin infinite 20s linear;
-    }
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--astral-bg);
+  color: var(--astral-text);
 }
 
-.App-header {
-    background-color: #0f0f10;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    font-size: calc(10px + 2vmin);
-    color: white;
+* {
+  box-sizing: border-box;
 }
 
-.App-link {
-    color: #61dafb;
+/* Cosmic Background with Animated Stars */
+.cosmic-bg {
+  position: relative;
+  background: linear-gradient(180deg, #0D1117 0%, #1a1f2e 100%);
+  overflow: hidden;
 }
 
-@keyframes App-logo-spin {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
+.stars {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  background-image: 
+    radial-gradient(2px 2px at 20px 30px, rgba(159, 134, 255, 0.8), transparent),
+    radial-gradient(2px 2px at 60px 70px, rgba(255, 211, 105, 0.8), transparent),
+    radial-gradient(1px 1px at 50px 50px, rgba(255, 255, 255, 0.8), transparent),
+    radial-gradient(1px 1px at 130px 80px, rgba(159, 134, 255, 0.6), transparent),
+    radial-gradient(2px 2px at 90px 10px, rgba(255, 255, 255, 0.6), transparent);
+  background-size: 200px 200px;
+  background-position: 0 0, 40px 60px, 130px 270px, 70px 100px;
+  animation: twinkle 8s ease-in-out infinite;
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* Panels */
+.cosmic-panel {
+  background-color: var(--astral-panel);
+  border-right: 1px solid rgba(159, 134, 255, 0.1);
+}
+
+.cosmic-panel-light {
+  background-color: rgba(22, 27, 34, 0.95);
+  backdrop-filter: blur(10px);
+  border-right: 1px solid rgba(159, 134, 255, 0.1);
+}
+
+/* Buttons */
+.cosmic-btn {
+  background: linear-gradient(135deg, var(--astral-accent) 0%, #7B5FB8 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 24px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 600;
+  box-shadow: 0 4px 15px rgba(159, 134, 255, 0.3);
+}
+
+.cosmic-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(159, 134, 255, 0.5);
+}
+
+.cosmic-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.cosmic-btn-secondary {
+  background-color: var(--astral-hover);
+  color: white;
+  border: 1px solid var(--astral-accent);
+  border-radius: 8px;
+  padding: 12px 24px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 600;
+}
+
+.cosmic-btn-secondary:hover {
+  background-color: rgba(159, 134, 255, 0.2);
+  transform: translateY(-1px);
+}
+
+/* Input Fields */
+.cosmic-input {
+  background-color: rgba(47, 43, 87, 0.5);
+  border: 1px solid rgba(159, 134, 255, 0.3);
+  color: var(--astral-text);
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+.cosmic-input:focus {
+  border-color: var(--astral-accent);
+  box-shadow: 0 0 0 3px rgba(159, 134, 255, 0.1);
+}
+
+.cosmic-input::placeholder {
+  color: rgba(230, 230, 230, 0.4);
+}
+
+/* Text Gradient */
+.cosmic-text {
+  background: linear-gradient(135deg, var(--astral-accent) 0%, var(--astral-highlight) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(22, 27, 34, 0.5);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(159, 134, 255, 0.3);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(159, 134, 255, 0.5);
+}
+
+/* Smooth Transitions */
+* {
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* Custom Tailwind Classes */
+@layer utilities {
+  .bg-astral-dark {
+    background-color: var(--astral-panel);
+  }
+  
+  .bg-astral-accent {
+    background-color: var(--astral-accent);
+  }
+  
+  .bg-astral-hover {
+    background-color: var(--astral-hover);
+  }
+  
+  .text-astral-highlight {
+    color: var(--astral-highlight);
+  }
+  
+  .border-astral-hover {
+    border-color: var(--astral-hover);
+  }
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Pulsing Glow for Active Users */
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(159, 134, 255, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(159, 134, 255, 0.8);
+  }
+}
+
+.pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
 }
