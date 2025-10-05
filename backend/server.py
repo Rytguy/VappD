@@ -169,7 +169,7 @@ async def process_session(session_id: str, response: Response):
         raise HTTPException(status_code=400, detail=str(e))
 
 @api_router.get("/auth/me")
-async def get_me(authorization: Optional[str] = None, session_token: Optional[str] = Cookie(None)):
+async def get_me(authorization: Optional[str] = Header(None), session_token: Optional[str] = Cookie(None)):
     """Get current user info"""
     user = await get_current_user(authorization, session_token)
     if not user:
