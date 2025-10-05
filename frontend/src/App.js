@@ -668,15 +668,62 @@ const Dashboard = ({ user, onLogout }) => {
             {channels.map(channel => (
               <button
                 key={channel.id}
-                onClick={() => setSelectedChannel(channel)}
+                onClick={() => {
+                  setSelectedChannel(channel);
+                  setCurrentView("channels");
+                }}
                 className={`w-full text-left px-3 py-2 rounded mb-1 flex items-center space-x-2 transition-colors ${
-                  selectedChannel?.id === channel.id ? 'bg-astral-hover text-white' : 'text-gray-300 hover:bg-astral-hover hover:text-white'
+                  selectedChannel?.id === channel.id && currentView === "channels" ? 'bg-astral-hover text-white' : 'text-gray-300 hover:bg-astral-hover hover:text-white'
                 }`}
               >
                 <span>{getChannelIcon(channel.type)}</span>
                 <span className="text-sm">{channel.name}</span>
               </button>
             ))}
+
+            {/* Productivity Section */}
+            <div className="mt-6 mb-2 px-2">
+              <span className="text-xs text-gray-400 font-semibold">PRODUCTIVITY</span>
+            </div>
+            
+            <button
+              onClick={() => {
+                setCurrentView("calendar");
+                setSelectedChannel(null);
+              }}
+              className={`w-full text-left px-3 py-2 rounded mb-1 flex items-center space-x-2 transition-colors ${
+                currentView === "calendar" ? 'bg-astral-hover text-white' : 'text-gray-300 hover:bg-astral-hover hover:text-white'
+              }`}
+            >
+              <span>📅</span>
+              <span className="text-sm">Calendar</span>
+            </button>
+
+            <button
+              onClick={() => {
+                setCurrentView("tasks");
+                setSelectedChannel(null);
+              }}
+              className={`w-full text-left px-3 py-2 rounded mb-1 flex items-center space-x-2 transition-colors ${
+                currentView === "tasks" ? 'bg-astral-hover text-white' : 'text-gray-300 hover:bg-astral-hover hover:text-white'
+              }`}
+            >
+              <span>📝</span>
+              <span className="text-sm">To-Do</span>
+            </button>
+
+            <button
+              onClick={() => {
+                setCurrentView("notes");
+                setSelectedChannel(null);
+              }}
+              className={`w-full text-left px-3 py-2 rounded mb-1 flex items-center space-x-2 transition-colors ${
+                currentView === "notes" ? 'bg-astral-hover text-white' : 'text-gray-300 hover:bg-astral-hover hover:text-white'
+              }`}
+            >
+              <span>🗒️</span>
+              <span className="text-sm">Notes</span>
+            </button>
           </div>
         </div>
       )}
