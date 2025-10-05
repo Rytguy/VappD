@@ -152,15 +152,18 @@ backend:
 
   - task: "Real-time Messaging with WebSocket"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Implemented WebSocket endpoint at /ws/{channel_id} for real-time message broadcasting. Also has REST endpoints: GET /api/channels/{channel_id}/messages and POST /api/channels/{channel_id}/messages"
+      - working: true
+        agent: "testing"
+        comment: "Messaging system working correctly. POST /api/channels/{id}/messages sends messages successfully. GET /api/channels/{id}/messages retrieves messages in chronological order. WebSocket endpoint available at /ws/{channel_id} for real-time broadcasting."
 
   - task: "Message Reactions"
     implemented: true
