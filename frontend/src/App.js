@@ -43,6 +43,20 @@ const Dashboard = ({ user, onLogout }) => {
   const [newChannelType, setNewChannelType] = useState("text");
   const wsRef = useRef(null);
   const messagesEndRef = useRef(null);
+  
+  // WebRTC State
+  const [inVoiceChannel, setInVoiceChannel] = useState(false);
+  const [voiceChannelId, setVoiceChannelId] = useState(null);
+  const [isMuted, setIsMuted] = useState(false);
+  const [isVideoEnabled, setIsVideoEnabled] = useState(false);
+  const [voiceParticipants, setVoiceParticipants] = useState([]);
+  const [localStream, setLocalStream] = useState(null);
+  const [remoteStreams, setRemoteStreams] = useState({});
+  const [peerConnections, setPeerConnections] = useState({});
+  const signalingWsRef = useRef(null);
+  const localVideoRef = useRef(null);
+  const audioContextRef = useRef(null);
+  const [speakingUsers, setSpeakingUsers] = useState(new Set());
 
   useEffect(() => {
     loadServers();
