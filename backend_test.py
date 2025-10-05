@@ -10,7 +10,7 @@ import sys
 from datetime import datetime
 
 # Configuration
-BASE_URL = "https://spacewave-1.preview.emergentagent.com/api"
+BASE_URL = "https://cosmic-chat-5.preview.emergentagent.com/api"
 SESSION_TOKEN = "T-ov0ehZaDXcT8JRJUW9m9Nxy2_wDKggcbhItRohxQk"  # From existing session
 USER_ID = "e03e0be4-8fe4-4729-ae43-4a29008a02a8"
 
