@@ -182,15 +182,18 @@ backend:
 
   - task: "Presence System"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Implemented POST /api/presence/status to update user status (online/offline/idle), GET /api/servers/{server_id}/members to get all server members with their presence status"
+      - working: true
+        agent: "testing"
+        comment: "Presence system fully functional. POST /api/presence/status successfully updates user status (tested online, idle). GET /api/servers/{id}/members returns all server members with their current presence status. Status changes are properly persisted in database."
 
 frontend:
   - task: "Login Page with Emergent Auth"
