@@ -211,6 +211,257 @@ const Dashboard = ({ user, onLogout }) => {
     }
   };
 
+  // ===== WEBRTC FUNCTIONS =====
+  const joinVoiceChannel = async (channel) => {
+    try {
+      // Get user media
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: true,
+        video: channel.type === "video"
+      });
+      
+      setLocalStream(stream);
+      setInVoiceChannel(true);
+      setVoiceChannelId(channel.id);
+      if (channel.type === "video") {
+        setIsVideoEnabled(true);
+      }
+
+      // Display local video
+      if (localVideoRef.current && channel.type === "video") {
+        localVideoRef.current.srcObject = stream;
+      }
+
+      // Setup audio analysis for speaking indicator
+      setupAudioAnalyzer(stream);
+
+      // Join voice channel on backend
+      await axios.post(`${API}/channels/${channel.id}/join`, {}, { withCredentials: true });
+
+      // Load existing participants
+      const response = await axios.get(`${API}/channels/${channel.id}/participants`, { withCredentials: true });
+      setVoiceParticipants(response.data);
+
+      // Setup signaling WebSocket
+      connectSignalingWebSocket(channel.id, response.data);
+
+    } catch (error) {
+      console.error("Error joining voice channel:", error);
+      alert("Failed to access microphone/camera. Please check permissions.");
+    }
+  };
+
+  const leaveVoiceChannel = async () => {
+    // Stop local stream
+    if (localStream) {
+      localStream.getTracks().forEach(track => track.stop());
+      setLocalStream(null);
+    }
+
+    // Close all peer connections
+    Object.values(peerConnections).forEach(pc => pc.close());
+    setPeerConnections({});
+    setRemoteStreams({});
+
+    // Close signaling WebSocket
+    if (signalingWsRef.current) {
+      signalingWsRef.current.close();
+    }
+
+    // Leave on backend
+    if (voiceChannelId) {
+      await axios.post(`${API}/channels/${voiceChannelId}/leave`, {}, { withCredentials: true });
+    }
+
+    setInVoiceChannel(false);
+    setVoiceChannelId(null);
+    setVoiceParticipants([]);
+    setIsMuted(false);
+    setIsVideoEnabled(false);
+  };
+
+  const toggleMute = async () => {
+    if (localStream) {
+      const audioTrack = localStream.getAudioTracks()[0];
+      if (audioTrack) {
+        audioTrack.enabled = !audioTrack.enabled;
+        setIsMuted(!audioTrack.enabled);
+        
+        // Update backend
+        await axios.post(
+          `${API}/channels/${voiceChannelId}/toggle-mute?is_muted=${!audioTrack.enabled}`,
+          {},
+          { withCredentials: true }
+        );
+      }
+    }
+  };
+
+  const toggleVideo = async () => {
+    if (localStream) {
+      const videoTrack = localStream.getVideoTracks()[0];
+      if (videoTrack) {
+        videoTrack.enabled = !videoTrack.enabled;
+        setIsVideoEnabled(videoTrack.enabled);
+        
+        // Update backend
+        await axios.post(
+          `${API}/channels/${voiceChannelId}/toggle-video?is_video_enabled=${videoTrack.enabled}`,
+          {},
+          { withCredentials: true }
+        );
+      }
+    }
+  };
+
+  const setupAudioAnalyzer = (stream) => {
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const analyser = audioContext.createAnalyser();
+    const microphone = audioContext.createMediaStreamSource(stream);
+    analyser.smoothingTimeConstant = 0.8;
+    analyser.fftSize = 1024;
+    
+    microphone.connect(analyser);
+    audioContextRef.current = { audioContext, analyser };
+
+    // Monitor audio levels
+    const dataArray = new Uint8Array(analyser.frequencyBinCount);
+    const checkAudioLevel = () => {
+      if (!audioContextRef.current) return;
+      
+      analyser.getByteFrequencyData(dataArray);
+      const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+      
+      if (average > 20) {
+        setSpeakingUsers(prev => new Set(prev).add(user.id));
+      } else {
+        setSpeakingUsers(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(user.id);
+          return newSet;
+        });
+      }
+      
+      requestAnimationFrame(checkAudioLevel);
+    };
+    
+    checkAudioLevel();
+  };
+
+  const connectSignalingWebSocket = (channelId, existingParticipants) => {
+    const ws = new WebSocket(`${WS_URL}/ws/signaling/${user.id}`);
+    
+    ws.onopen = () => {
+      console.log("Signaling WebSocket connected");
+      
+      // Create peer connections for existing participants
+      existingParticipants.forEach(participant => {
+        if (participant.user_id !== user.id) {
+          createPeerConnection(participant.user_id, true);
+        }
+      });
+    };
+
+    ws.onmessage = async (event) => {
+      const message = JSON.parse(event.data);
+      
+      if (message.type === "offer") {
+        await handleOffer(message);
+      } else if (message.type === "answer") {
+        await handleAnswer(message);
+      } else if (message.type === "ice-candidate") {
+        await handleIceCandidate(message);
+      }
+    };
+
+    signalingWsRef.current = ws;
+  };
+
+  const createPeerConnection = (targetUserId, createOffer) => {
+    const configuration = {
+      iceServers: [
+        { urls: "stun:stun.l.google.com:19302" },
+        { urls: "stun:stun1.l.google.com:19302" }
+      ]
+    };
+
+    const pc = new RTCPeerConnection(configuration);
+
+    // Add local stream tracks
+    if (localStream) {
+      localStream.getTracks().forEach(track => {
+        pc.addTrack(track, localStream);
+      });
+    }
+
+    // Handle incoming stream
+    pc.ontrack = (event) => {
+      setRemoteStreams(prev => ({
+        ...prev,
+        [targetUserId]: event.streams[0]
+      }));
+    };
+
+    // Handle ICE candidates
+    pc.onicecandidate = (event) => {
+      if (event.candidate && signalingWsRef.current) {
+        signalingWsRef.current.send(JSON.stringify({
+          type: "ice-candidate",
+          target: targetUserId,
+          candidate: event.candidate
+        }));
+      }
+    };
+
+    setPeerConnections(prev => ({ ...prev, [targetUserId]: pc }));
+
+    // Create and send offer if initiator
+    if (createOffer) {
+      pc.createOffer()
+        .then(offer => pc.setLocalDescription(offer))
+        .then(() => {
+          if (signalingWsRef.current) {
+            signalingWsRef.current.send(JSON.stringify({
+              type: "offer",
+              target: targetUserId,
+              offer: pc.localDescription
+            }));
+          }
+        });
+    }
+
+    return pc;
+  };
+
+  const handleOffer = async (message) => {
+    const pc = createPeerConnection(message.from, false);
+    await pc.setRemoteDescription(new RTCSessionDescription(message.offer));
+    const answer = await pc.createAnswer();
+    await pc.setLocalDescription(answer);
+    
+    if (signalingWsRef.current) {
+      signalingWsRef.current.send(JSON.stringify({
+        type: "answer",
+        target: message.from,
+        answer: pc.localDescription
+      }));
+    }
+  };
+
+  const handleAnswer = async (message) => {
+    const pc = peerConnections[message.from];
+    if (pc) {
+      await pc.setRemoteDescription(new RTCSessionDescription(message.answer));
+    }
+  };
+
+  const handleIceCandidate = async (message) => {
+    const pc = peerConnections[message.from];
+    if (pc && message.candidate) {
+      await pc.addIceCandidate(new RTCIceCandidate(message.candidate));
+    }
+  };
+
   const getChannelIcon = (type) => {
     switch(type) {
       case "voice": return "🎙️";
