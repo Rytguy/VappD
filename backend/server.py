@@ -476,6 +476,287 @@ async def get_server_members(server_id: str, authorization: Optional[str] = Head
     members = await db.users.find({"id": {"$in": server["members"]}}).to_list(1000)
     return [User(**m) for m in members]
 
+# ===== CALENDAR ROUTES =====
+@api_router.post("/servers/{server_id}/events", response_model=CalendarEvent)
+async def create_event(server_id: str, request: CreateEventRequest, authorization: Optional[str] = Header(None), session_token: Optional[str] = Cookie(None)):
+    """Create a calendar event"""
+    user = await get_current_user(authorization, session_token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    server = await db.servers.find_one({"id": server_id})
+    if not server or user.id not in server["members"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    event = CalendarEvent(
+        id=str(uuid.uuid4()),
+        server_id=server_id,
+        title=request.title,
+        description=request.description,
+        start_time=request.start_time,
+        end_time=request.end_time,
+        assigned_to=request.assigned_to,
+        color=request.color,
+        channel_link=request.channel_link,
+        created_by=user.id,
+        created_at=datetime.now(timezone.utc)
+    )
+    await db.calendar_events.insert_one(event.dict())
+    return event
+
+@api_router.get("/servers/{server_id}/events", response_model=List[CalendarEvent])
+async def get_events(server_id: str, start_date: Optional[str] = None, end_date: Optional[str] = None, authorization: Optional[str] = Header(None), session_token: Optional[str] = Cookie(None)):
+    """Get all events for a server (optionally filtered by date range)"""
+    user = await get_current_user(authorization, session_token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    server = await db.servers.find_one({"id": server_id})
+    if not server or user.id not in server["members"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    query = {"server_id": server_id}
+    if start_date and end_date:
+        query["start_time"] = {
+            "$gte": datetime.fromisoformat(start_date),
+            "$lte": datetime.fromisoformat(end_date)
+        }
+    
+    events = await db.calendar_events.find(query).sort("start_time", 1).to_list(1000)
+    return [CalendarEvent(**e) for e in events]
+
+@api_router.get("/servers/{server_id}/events/{event_id}", response_model=CalendarEvent)
+async def get_event(server_id: str, event_id: str, authorization: Optional[str] = Header(None), session_token: Optional[str] = Cookie(None)):
+    """Get a specific event"""
+    user = await get_current_user(authorization, session_token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    event = await db.calendar_events.find_one({"id": event_id, "server_id": server_id})
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    
+    return CalendarEvent(**event)
+
+@api_router.put("/servers/{server_id}/events/{event_id}", response_model=CalendarEvent)
+async def update_event(server_id: str, event_id: str, request: UpdateEventRequest, authorization: Optional[str] = Header(None), session_token: Optional[str] = Cookie(None)):
+    """Update a calendar event"""
+    user = await get_current_user(authorization, session_token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    event = await db.calendar_events.find_one({"id": event_id, "server_id": server_id})
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    
+    update_data = {k: v for k, v in request.dict().items() if v is not None}
+    if update_data:
+        await db.calendar_events.update_one(
+            {"id": event_id},
+            {"$set": update_data}
+        )
+    
+    updated_event = await db.calendar_events.find_one({"id": event_id})
+    return CalendarEvent(**updated_event)
+
+@api_router.delete("/servers/{server_id}/events/{event_id}")
+async def delete_event(server_id: str, event_id: str, authorization: Optional[str] = Header(None), session_token: Optional[str] = Cookie(None)):
+    """Delete a calendar event"""
+    user = await get_current_user(authorization, session_token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    event = await db.calendar_events.find_one({"id": event_id, "server_id": server_id})
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    
+    await db.calendar_events.delete_one({"id": event_id})
+    return {"success": True}
+
+# ===== TASK ROUTES =====
+@api_router.post("/servers/{server_id}/tasks", response_model=Task)
+async def create_task(server_id: str, request: CreateTaskRequest, authorization: Optional[str] = Header(None), session_token: Optional[str] = Cookie(None)):
+    """Create a task"""
+    user = await get_current_user(authorization, session_token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    server = await db.servers.find_one({"id": server_id})
+    if not server or user.id not in server["members"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    task = Task(
+        id=str(uuid.uuid4()),
+        server_id=server_id,
+        title=request.title,
+        description=request.description,
+        assigned_to=request.assigned_to,
+        deadline=request.deadline,
+        priority=request.priority,
+        created_by=user.id,
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc)
+    )
+    await db.tasks.insert_one(task.dict())
+    return task
+
+@api_router.get("/servers/{server_id}/tasks", response_model=List[Task])
+async def get_tasks(server_id: str, completed: Optional[bool] = None, authorization: Optional[str] = Header(None), session_token: Optional[str] = Cookie(None)):
+    """Get all tasks for a server"""
+    user = await get_current_user(authorization, session_token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    server = await db.servers.find_one({"id": server_id})
+    if not server or user.id not in server["members"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    query = {"server_id": server_id}
+    if completed is not None:
+        query["completed"] = completed
+    
+    tasks = await db.tasks.find(query).sort("created_at", -1).to_list(1000)
+    return [Task(**t) for t in tasks]
+
+@api_router.get("/servers/{server_id}/tasks/{task_id}", response_model=Task)
+async def get_task(server_id: str, task_id: str, authorization: Optional[str] = Header(None), session_token: Optional[str] = Cookie(None)):
+    """Get a specific task"""
+    user = await get_current_user(authorization, session_token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    task = await db.tasks.find_one({"id": task_id, "server_id": server_id})
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    
+    return Task(**task)
+
+@api_router.put("/servers/{server_id}/tasks/{task_id}", response_model=Task)
+async def update_task(server_id: str, task_id: str, request: UpdateTaskRequest, authorization: Optional[str] = Header(None), session_token: Optional[str] = Cookie(None)):
+    """Update a task"""
+    user = await get_current_user(authorization, session_token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    task = await db.tasks.find_one({"id": task_id, "server_id": server_id})
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    
+    update_data = {k: v for k, v in request.dict().items() if v is not None}
+    if update_data:
+        update_data["updated_at"] = datetime.now(timezone.utc)
+        await db.tasks.update_one(
+            {"id": task_id},
+            {"$set": update_data}
+        )
+    
+    updated_task = await db.tasks.find_one({"id": task_id})
+    return Task(**updated_task)
+
+@api_router.delete("/servers/{server_id}/tasks/{task_id}")
+async def delete_task(server_id: str, task_id: str, authorization: Optional[str] = Header(None), session_token: Optional[str] = Cookie(None)):
+    """Delete a task"""
+    user = await get_current_user(authorization, session_token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    task = await db.tasks.find_one({"id": task_id, "server_id": server_id})
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    
+    await db.tasks.delete_one({"id": task_id})
+    return {"success": True}
+
+# ===== NOTES ROUTES =====
+@api_router.post("/servers/{server_id}/notes", response_model=Note)
+async def create_note(server_id: str, request: CreateNoteRequest, authorization: Optional[str] = Header(None), session_token: Optional[str] = Cookie(None)):
+    """Create a note"""
+    user = await get_current_user(authorization, session_token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    server = await db.servers.find_one({"id": server_id})
+    if not server or user.id not in server["members"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    note = Note(
+        id=str(uuid.uuid4()),
+        server_id=server_id,
+        title=request.title,
+        content=request.content,
+        collaborative=request.collaborative,
+        created_by=user.id,
+        updated_by=user.id,
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc)
+    )
+    await db.notes.insert_one(note.dict())
+    return note
+
+@api_router.get("/servers/{server_id}/notes", response_model=List[Note])
+async def get_notes(server_id: str, authorization: Optional[str] = Header(None), session_token: Optional[str] = Cookie(None)):
+    """Get all notes for a server"""
+    user = await get_current_user(authorization, session_token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    server = await db.servers.find_one({"id": server_id})
+    if not server or user.id not in server["members"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    notes = await db.notes.find({"server_id": server_id}).sort("updated_at", -1).to_list(1000)
+    return [Note(**n) for n in notes]
+
+@api_router.get("/servers/{server_id}/notes/{note_id}", response_model=Note)
+async def get_note(server_id: str, note_id: str, authorization: Optional[str] = Header(None), session_token: Optional[str] = Cookie(None)):
+    """Get a specific note"""
+    user = await get_current_user(authorization, session_token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    note = await db.notes.find_one({"id": note_id, "server_id": server_id})
+    if not note:
+        raise HTTPException(status_code=404, detail="Note not found")
+    
+    return Note(**note)
+
+@api_router.put("/servers/{server_id}/notes/{note_id}", response_model=Note)
+async def update_note(server_id: str, note_id: str, request: UpdateNoteRequest, authorization: Optional[str] = Header(None), session_token: Optional[str] = Cookie(None)):
+    """Update a note"""
+    user = await get_current_user(authorization, session_token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    note = await db.notes.find_one({"id": note_id, "server_id": server_id})
+    if not note:
+        raise HTTPException(status_code=404, detail="Note not found")
+    
+    update_data = {k: v for k, v in request.dict().items() if v is not None}
+    if update_data:
+        update_data["updated_by"] = user.id
+        update_data["updated_at"] = datetime.now(timezone.utc)
+        await db.notes.update_one(
+            {"id": note_id},
+            {"$set": update_data}
+        )
+    
+    updated_note = await db.notes.find_one({"id": note_id})
+    return Note(**updated_note)
+
+@api_router.delete("/servers/{server_id}/notes/{note_id}")
+async def delete_note(server_id: str, note_id: str, authorization: Optional[str] = Header(None), session_token: Optional[str] = Cookie(None)):
+    """Delete a note"""
+    user = await get_current_user(authorization, session_token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    note = await db.notes.find_one({"id": note_id, "server_id": server_id})
+    if not note:
+        raise HTTPException(status_code=404, detail="Note not found")
+    
+    await db.notes.delete_one({"id": note_id})
+    return {"success": True}
+
 # ===== VOICE/VIDEO CHANNEL ROUTES =====
 @api_router.post("/channels/{channel_id}/join")
 async def join_voice_channel(channel_id: str, authorization: Optional[str] = Header(None), session_token: Optional[str] = Cookie(None)):
