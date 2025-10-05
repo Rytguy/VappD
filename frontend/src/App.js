@@ -729,7 +729,7 @@ const Dashboard = ({ user, onLogout }) => {
       )}
 
       {/* Main Content Area */}
-      {selectedChannel ? (
+      {(selectedChannel && currentView === "channels") ? (
         <div className="flex-1 flex flex-col z-10">
           {/* Channel Header */}
           <div className="h-16 cosmic-panel-light flex items-center justify-between px-6 border-b border-astral-hover">
