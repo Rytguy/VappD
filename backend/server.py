@@ -438,9 +438,14 @@ async def get_voice_participants(channel_id: str, authorization: Optional[str] =
     for p in participants:
         user_doc = await db.users.find_one({"id": p["user_id"]})
         if user_doc:
+            # Remove MongoDB _id field from participant data
+            participant_data = {k: v for k, v in p.items() if k != "_id"}
+            # Remove MongoDB _id field from user data
+            user_data = {k: v for k, v in user_doc.items() if k != "_id"}
+            
             result.append({
-                **p,
-                "user": User(**user_doc).dict()
+                **participant_data,
+                "user": User(**user_data).dict()
             })
     
     return result
