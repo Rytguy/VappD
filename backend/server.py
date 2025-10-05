@@ -351,7 +351,7 @@ async def add_reaction(message_id: str, request: AddReactionRequest, authorizati
 
 # ===== PRESENCE ROUTES =====
 @api_router.post("/presence/status")
-async def update_status(status: str, authorization: Optional[str] = None, session_token: Optional[str] = Cookie(None)):
+async def update_status(status: str, authorization: Optional[str] = Header(None), session_token: Optional[str] = Cookie(None)):
     """Update user status"""
     user = await get_current_user(authorization, session_token)
     if not user:
