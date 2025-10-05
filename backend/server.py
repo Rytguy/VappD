@@ -385,10 +385,97 @@ async def get_server_members(server_id: str, authorization: Optional[str] = Head
     members = await db.users.find({"id": {"$in": server["members"]}}).to_list(1000)
     return [User(**m) for m in members]
 
+# ===== VOICE/VIDEO CHANNEL ROUTES =====
+@api_router.post("/channels/{channel_id}/join")
+async def join_voice_channel(channel_id: str, authorization: Optional[str] = Header(None), session_token: Optional[str] = Cookie(None)):
+    """Join a voice/video channel"""
+    user = await get_current_user(authorization, session_token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    # Check if already in channel
+    existing = await db.voice_participants.find_one({
+        "channel_id": channel_id,
+        "user_id": user.id
+    })
+    
+    if existing:
+        return VoiceChannelParticipant(**existing)
+    
+    participant = VoiceChannelParticipant(
+        id=str(uuid.uuid4()),
+        channel_id=channel_id,
+        user_id=user.id,
+        joined_at=datetime.now(timezone.utc)
+    )
+    await db.voice_participants.insert_one(participant.dict())
+    return participant
+
+@api_router.post("/channels/{channel_id}/leave")
+async def leave_voice_channel(channel_id: str, authorization: Optional[str] = Header(None), session_token: Optional[str] = Cookie(None)):
+    """Leave a voice/video channel"""
+    user = await get_current_user(authorization, session_token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    await db.voice_participants.delete_one({
+        "channel_id": channel_id,
+        "user_id": user.id
+    })
+    return {"success": True}
+
+@api_router.get("/channels/{channel_id}/participants")
+async def get_voice_participants(channel_id: str, authorization: Optional[str] = Header(None), session_token: Optional[str] = Cookie(None)):
+    """Get all participants in a voice/video channel"""
+    user = await get_current_user(authorization, session_token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    participants = await db.voice_participants.find({"channel_id": channel_id}).to_list(1000)
+    
+    # Get user details for each participant
+    result = []
+    for p in participants:
+        user_doc = await db.users.find_one({"id": p["user_id"]})
+        if user_doc:
+            result.append({
+                **p,
+                "user": User(**user_doc).dict()
+            })
+    
+    return result
+
+@api_router.post("/channels/{channel_id}/toggle-mute")
+async def toggle_mute(channel_id: str, is_muted: bool, authorization: Optional[str] = Header(None), session_token: Optional[str] = Cookie(None)):
+    """Toggle mute status"""
+    user = await get_current_user(authorization, session_token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    await db.voice_participants.update_one(
+        {"channel_id": channel_id, "user_id": user.id},
+        {"$set": {"is_muted": is_muted}}
+    )
+    return {"success": True}
+
+@api_router.post("/channels/{channel_id}/toggle-video")
+async def toggle_video(channel_id: str, is_video_enabled: bool, authorization: Optional[str] = Header(None), session_token: Optional[str] = Cookie(None)):
+    """Toggle video status"""
+    user = await get_current_user(authorization, session_token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    await db.voice_participants.update_one(
+        {"channel_id": channel_id, "user_id": user.id},
+        {"$set": {"is_video_enabled": is_video_enabled}}
+    )
+    return {"success": True}
+
 # ===== WEBSOCKET FOR REAL-TIME =====
 class ConnectionManager:
     def __init__(self):
         self.active_connections: Dict[str, List[WebSocket]] = {}  # channel_id -> list of websockets
+        self.user_connections: Dict[str, WebSocket] = {}  # user_id -> websocket for signaling
     
     async def connect(self, websocket: WebSocket, channel_id: str):
         await websocket.accept()
@@ -398,7 +485,8 @@ class ConnectionManager:
     
     def disconnect(self, websocket: WebSocket, channel_id: str):
         if channel_id in self.active_connections:
-            self.active_connections[channel_id].remove(websocket)
+            if websocket in self.active_connections[channel_id]:
+                self.active_connections[channel_id].remove(websocket)
     
     async def broadcast(self, message: str, channel_id: str):
         if channel_id in self.active_connections:
@@ -407,6 +495,21 @@ class ConnectionManager:
                     await connection.send_text(message)
                 except:
                     pass
+    
+    async def connect_signaling(self, websocket: WebSocket, user_id: str):
+        await websocket.accept()
+        self.user_connections[user_id] = websocket
+    
+    def disconnect_signaling(self, user_id: str):
+        if user_id in self.user_connections:
+            del self.user_connections[user_id]
+    
+    async def send_to_user(self, user_id: str, message: str):
+        if user_id in self.user_connections:
+            try:
+                await self.user_connections[user_id].send_text(message)
+            except:
+                pass
 
 manager = ConnectionManager()
 
@@ -420,6 +523,23 @@ async def websocket_endpoint(websocket: WebSocket, channel_id: str):
             await manager.broadcast(data, channel_id)
     except WebSocketDisconnect:
         manager.disconnect(websocket, channel_id)
+
+@app.websocket("/ws/signaling/{user_id}")
+async def signaling_endpoint(websocket: WebSocket, user_id: str):
+    """WebRTC signaling endpoint for peer-to-peer connections"""
+    await manager.connect_signaling(websocket, user_id)
+    try:
+        while True:
+            data = await websocket.receive_text()
+            message = json.loads(data)
+            
+            # Forward signaling messages to target peer
+            if message.get("type") in ["offer", "answer", "ice-candidate"]:
+                target_user_id = message.get("target")
+                if target_user_id:
+                    await manager.send_to_user(target_user_id, data)
+    except WebSocketDisconnect:
+        manager.disconnect_signaling(user_id)
 
 # ===== INCLUDE ROUTER =====
 app.include_router(api_router)
