@@ -197,7 +197,7 @@ async def logout(response: Response, session_token: Optional[str] = Cookie(None)
 
 # ===== SERVER ROUTES =====
 @api_router.post("/servers", response_model=Server)
-async def create_server(request: CreateServerRequest, authorization: Optional[str] = None, session_token: Optional[str] = Cookie(None)):
+async def create_server(request: CreateServerRequest, authorization: Optional[str] = Header(None), session_token: Optional[str] = Cookie(None)):
     """Create a new server"""
     user = await get_current_user(authorization, session_token)
     if not user:
