@@ -232,7 +232,7 @@ async def create_server(request: CreateServerRequest, authorization: Optional[st
     return server
 
 @api_router.get("/servers", response_model=List[Server])
-async def get_servers(authorization: Optional[str] = None, session_token: Optional[str] = Cookie(None)):
+async def get_servers(authorization: Optional[str] = Header(None), session_token: Optional[str] = Cookie(None)):
     """Get all servers user is a member of"""
     user = await get_current_user(authorization, session_token)
     if not user:
