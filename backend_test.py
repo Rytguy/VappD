@@ -473,6 +473,268 @@ def test_webrtc_participants_management(channel_id):
         print(f"  ❌ Failed to get participants - Status: {response.status_code}, Response: {response.text}")
         return False
 
+def test_calendar_events_api(server_id):
+    """Test Calendar Events API - CRUD operations"""
+    print("\n📅 Testing Calendar Events API...")
+    
+    # Test POST /api/servers/{server_id}/events (create event)
+    print("  Testing POST /api/servers/{server_id}/events (create event)...")
+    event_data = {
+        "title": "Cosmic Team Meeting",
+        "description": "Weekly sync meeting to discuss stellar progress and galactic roadmap",
+        "start_time": "2024-01-15T10:00:00Z",
+        "end_time": "2024-01-15T11:00:00Z",
+        "assigned_to": [USER_ID],
+        "color": "#9F86FF",
+        "channel_link": None
+    }
+    
+    response = requests.post(f"{BASE_URL}/servers/{server_id}/events", 
+                           headers=AUTH_HEADERS, 
+                           json=event_data)
+    
+    if response.status_code == 200:
+        event = response.json()
+        event_id = event.get('id')
+        print(f"  ✅ Event created - ID: {event_id}, Title: {event.get('title')}")
+        
+        # Test GET /api/servers/{server_id}/events (list all events)
+        print("  Testing GET /api/servers/{server_id}/events (list events)...")
+        response = requests.get(f"{BASE_URL}/servers/{server_id}/events", headers=AUTH_HEADERS)
+        
+        if response.status_code == 200:
+            events = response.json()
+            print(f"  ✅ Listed {len(events)} events")
+            
+            # Test GET /api/servers/{server_id}/events/{event_id} (get specific event)
+            print(f"  Testing GET /api/servers/{server_id}/events/{event_id} (get specific event)...")
+            response = requests.get(f"{BASE_URL}/servers/{server_id}/events/{event_id}", headers=AUTH_HEADERS)
+            
+            if response.status_code == 200:
+                specific_event = response.json()
+                print(f"  ✅ Retrieved specific event - Title: {specific_event.get('title')}")
+                
+                # Test PUT /api/servers/{server_id}/events/{event_id} (update event)
+                print(f"  Testing PUT /api/servers/{server_id}/events/{event_id} (update event)...")
+                update_data = {
+                    "title": "Updated Cosmic Team Meeting",
+                    "description": "Updated description with new agenda items",
+                    "color": "#FF6B6B"
+                }
+                
+                response = requests.put(f"{BASE_URL}/servers/{server_id}/events/{event_id}", 
+                                      headers=AUTH_HEADERS, 
+                                      json=update_data)
+                
+                if response.status_code == 200:
+                    updated_event = response.json()
+                    print(f"  ✅ Event updated - New title: {updated_event.get('title')}")
+                    
+                    # Test DELETE /api/servers/{server_id}/events/{event_id} (delete event)
+                    print(f"  Testing DELETE /api/servers/{server_id}/events/{event_id} (delete event)...")
+                    response = requests.delete(f"{BASE_URL}/servers/{server_id}/events/{event_id}", headers=AUTH_HEADERS)
+                    
+                    if response.status_code == 200:
+                        result = response.json()
+                        print(f"  ✅ Event deleted - Success: {result.get('success')}")
+                        return True
+                    else:
+                        print(f"  ❌ Failed to delete event - Status: {response.status_code}, Response: {response.text}")
+                        return False
+                else:
+                    print(f"  ❌ Failed to update event - Status: {response.status_code}, Response: {response.text}")
+                    return False
+            else:
+                print(f"  ❌ Failed to get specific event - Status: {response.status_code}, Response: {response.text}")
+                return False
+        else:
+            print(f"  ❌ Failed to list events - Status: {response.status_code}, Response: {response.text}")
+            return False
+    else:
+        print(f"  ❌ Failed to create event - Status: {response.status_code}, Response: {response.text}")
+        return False
+
+def test_tasks_api(server_id):
+    """Test Tasks API - CRUD operations"""
+    print("\n✅ Testing Tasks API...")
+    
+    # Test POST /api/servers/{server_id}/tasks (create task)
+    print("  Testing POST /api/servers/{server_id}/tasks (create task)...")
+    task_data = {
+        "title": "Implement Stellar Navigation System",
+        "description": "Design and implement the core navigation system for interstellar travel",
+        "assigned_to": [USER_ID],
+        "deadline": "2024-01-20T23:59:59Z",
+        "priority": "high"
+    }
+    
+    response = requests.post(f"{BASE_URL}/servers/{server_id}/tasks", 
+                           headers=AUTH_HEADERS, 
+                           json=task_data)
+    
+    if response.status_code == 200:
+        task = response.json()
+        task_id = task.get('id')
+        print(f"  ✅ Task created - ID: {task_id}, Title: {task.get('title')}")
+        
+        # Test GET /api/servers/{server_id}/tasks (list all tasks)
+        print("  Testing GET /api/servers/{server_id}/tasks (list all tasks)...")
+        response = requests.get(f"{BASE_URL}/servers/{server_id}/tasks", headers=AUTH_HEADERS)
+        
+        if response.status_code == 200:
+            tasks = response.json()
+            print(f"  ✅ Listed {len(tasks)} tasks")
+            
+            # Test GET /api/servers/{server_id}/tasks with completed filter
+            print("  Testing GET /api/servers/{server_id}/tasks?completed=false (filter incomplete tasks)...")
+            response = requests.get(f"{BASE_URL}/servers/{server_id}/tasks?completed=false", headers=AUTH_HEADERS)
+            
+            if response.status_code == 200:
+                incomplete_tasks = response.json()
+                print(f"  ✅ Listed {len(incomplete_tasks)} incomplete tasks")
+                
+                # Test GET /api/servers/{server_id}/tasks/{task_id} (get specific task)
+                print(f"  Testing GET /api/servers/{server_id}/tasks/{task_id} (get specific task)...")
+                response = requests.get(f"{BASE_URL}/servers/{server_id}/tasks/{task_id}", headers=AUTH_HEADERS)
+                
+                if response.status_code == 200:
+                    specific_task = response.json()
+                    print(f"  ✅ Retrieved specific task - Title: {specific_task.get('title')}")
+                    
+                    # Test PUT /api/servers/{server_id}/tasks/{task_id} (update task - mark complete)
+                    print(f"  Testing PUT /api/servers/{server_id}/tasks/{task_id} (mark task complete)...")
+                    update_data = {
+                        "completed": True,
+                        "progress": 100,
+                        "description": "Navigation system successfully implemented and tested"
+                    }
+                    
+                    response = requests.put(f"{BASE_URL}/servers/{server_id}/tasks/{task_id}", 
+                                          headers=AUTH_HEADERS, 
+                                          json=update_data)
+                    
+                    if response.status_code == 200:
+                        updated_task = response.json()
+                        print(f"  ✅ Task updated - Completed: {updated_task.get('completed')}, Progress: {updated_task.get('progress')}%")
+                        
+                        # Test GET with completed=true filter
+                        print("  Testing GET /api/servers/{server_id}/tasks?completed=true (filter completed tasks)...")
+                        response = requests.get(f"{BASE_URL}/servers/{server_id}/tasks?completed=true", headers=AUTH_HEADERS)
+                        
+                        if response.status_code == 200:
+                            completed_tasks = response.json()
+                            print(f"  ✅ Listed {len(completed_tasks)} completed tasks")
+                            
+                            # Test DELETE /api/servers/{server_id}/tasks/{task_id} (delete task)
+                            print(f"  Testing DELETE /api/servers/{server_id}/tasks/{task_id} (delete task)...")
+                            response = requests.delete(f"{BASE_URL}/servers/{server_id}/tasks/{task_id}", headers=AUTH_HEADERS)
+                            
+                            if response.status_code == 200:
+                                result = response.json()
+                                print(f"  ✅ Task deleted - Success: {result.get('success')}")
+                                return True
+                            else:
+                                print(f"  ❌ Failed to delete task - Status: {response.status_code}, Response: {response.text}")
+                                return False
+                        else:
+                            print(f"  ❌ Failed to filter completed tasks - Status: {response.status_code}, Response: {response.text}")
+                            return False
+                    else:
+                        print(f"  ❌ Failed to update task - Status: {response.status_code}, Response: {response.text}")
+                        return False
+                else:
+                    print(f"  ❌ Failed to get specific task - Status: {response.status_code}, Response: {response.text}")
+                    return False
+            else:
+                print(f"  ❌ Failed to filter incomplete tasks - Status: {response.status_code}, Response: {response.text}")
+                return False
+        else:
+            print(f"  ❌ Failed to list tasks - Status: {response.status_code}, Response: {response.text}")
+            return False
+    else:
+        print(f"  ❌ Failed to create task - Status: {response.status_code}, Response: {response.text}")
+        return False
+
+def test_notes_api(server_id):
+    """Test Notes API - CRUD operations"""
+    print("\n📝 Testing Notes API...")
+    
+    # Test POST /api/servers/{server_id}/notes (create note)
+    print("  Testing POST /api/servers/{server_id}/notes (create note)...")
+    note_data = {
+        "title": "Galactic Communication Protocols",
+        "content": "# Communication Standards\n\n## Overview\nThis document outlines the standard protocols for interstellar communication.\n\n## Key Points\n- Use quantum entanglement for instant messaging\n- Implement cosmic encryption for security\n- Maintain backup channels via subspace relay",
+        "collaborative": True
+    }
+    
+    response = requests.post(f"{BASE_URL}/servers/{server_id}/notes", 
+                           headers=AUTH_HEADERS, 
+                           json=note_data)
+    
+    if response.status_code == 200:
+        note = response.json()
+        note_id = note.get('id')
+        print(f"  ✅ Note created - ID: {note_id}, Title: {note.get('title')}")
+        
+        # Test GET /api/servers/{server_id}/notes (list all notes)
+        print("  Testing GET /api/servers/{server_id}/notes (list notes)...")
+        response = requests.get(f"{BASE_URL}/servers/{server_id}/notes", headers=AUTH_HEADERS)
+        
+        if response.status_code == 200:
+            notes = response.json()
+            print(f"  ✅ Listed {len(notes)} notes")
+            
+            # Test GET /api/servers/{server_id}/notes/{note_id} (get specific note)
+            print(f"  Testing GET /api/servers/{server_id}/notes/{note_id} (get specific note)...")
+            response = requests.get(f"{BASE_URL}/servers/{server_id}/notes/{note_id}", headers=AUTH_HEADERS)
+            
+            if response.status_code == 200:
+                specific_note = response.json()
+                print(f"  ✅ Retrieved specific note - Title: {specific_note.get('title')}")
+                print(f"    Content preview: {specific_note.get('content')[:50]}...")
+                
+                # Test PUT /api/servers/{server_id}/notes/{note_id} (update note)
+                print(f"  Testing PUT /api/servers/{server_id}/notes/{note_id} (update note)...")
+                update_data = {
+                    "title": "Updated Galactic Communication Protocols",
+                    "content": "# Updated Communication Standards\n\n## Overview\nThis document has been updated with new protocols for interstellar communication.\n\n## New Features\n- Enhanced quantum encryption\n- Multi-dimensional relay support\n- Emergency broadcast protocols\n\n## Implementation Notes\n- Deploy across all star systems\n- Test with Alpha Centauri relay first",
+                    "collaborative": False
+                }
+                
+                response = requests.put(f"{BASE_URL}/servers/{server_id}/notes/{note_id}", 
+                                      headers=AUTH_HEADERS, 
+                                      json=update_data)
+                
+                if response.status_code == 200:
+                    updated_note = response.json()
+                    print(f"  ✅ Note updated - New title: {updated_note.get('title')}")
+                    print(f"    Collaborative: {updated_note.get('collaborative')}")
+                    print(f"    Updated by: {updated_note.get('updated_by')}")
+                    
+                    # Test DELETE /api/servers/{server_id}/notes/{note_id} (delete note)
+                    print(f"  Testing DELETE /api/servers/{server_id}/notes/{note_id} (delete note)...")
+                    response = requests.delete(f"{BASE_URL}/servers/{server_id}/notes/{note_id}", headers=AUTH_HEADERS)
+                    
+                    if response.status_code == 200:
+                        result = response.json()
+                        print(f"  ✅ Note deleted - Success: {result.get('success')}")
+                        return True
+                    else:
+                        print(f"  ❌ Failed to delete note - Status: {response.status_code}, Response: {response.text}")
+                        return False
+                else:
+                    print(f"  ❌ Failed to update note - Status: {response.status_code}, Response: {response.text}")
+                    return False
+            else:
+                print(f"  ❌ Failed to get specific note - Status: {response.status_code}, Response: {response.text}")
+                return False
+        else:
+            print(f"  ❌ Failed to list notes - Status: {response.status_code}, Response: {response.text}")
+            return False
+    else:
+        print(f"  ❌ Failed to create note - Status: {response.status_code}, Response: {response.text}")
+        return False
+
 def main():
     """Run all backend tests"""
     print("🌌 AstralLink Backend API Testing Suite")
@@ -487,7 +749,10 @@ def main():
         "presence": False,
         "webrtc_voice": False,
         "webrtc_video": False,
-        "webrtc_participants": False
+        "webrtc_participants": False,
+        "calendar_events": False,
+        "tasks": False,
+        "notes": False
     }
     
     # Test Authentication
