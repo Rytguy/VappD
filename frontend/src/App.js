@@ -60,6 +60,187 @@ const Dashboard = ({ user, onLogout }) => {
   const messagesEndRef = useRef(null);
 
   const [uploading, setUploading] = useState(false); // <-- Place here with your other hooks
+
+  // Calendar date and editing state
+  const [calendarDate, setCalendarDate] = useState(new Date());
+  const [editingEvent, setEditingEvent] = useState(null);
+  
+  // Calendar helpers
+  const startOfDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const endOfDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59);
+  const startOfMonthGrid = (date) => {
+    const first = new Date(date.getFullYear(), date.getMonth(), 1);
+    const weekday = first.getDay(); // 0=Sun
+    const diff = (weekday + 6) % 7; // Monday as first; change if Sunday start is desired
+    const gridStart = new Date(first);
+    gridStart.setDate(first.getDate() - diff);
+    gridStart.setHours(0,0,0,0);
+    return gridStart;
+  };
+  const addDays = (date, n) => {
+    const d = new Date(date);
+    d.setDate(d.getDate() + n);
+    return d;
+  };
+  const isSameDay = (a,b) =>
+    a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate();
+  
+  // Event update/delete API
+  const updateEvent = async (eventId, patch) => {
+    try {
+      const res = await axios.put(`${API}/servers/${selectedServer.id}/events/${eventId}`, patch, { withCredentials: true });
+      setEvents(evts => evts.map(e => e.id === eventId ? res.data : e));
+    } catch (err) {
+      console.error("Error updating event:", err);
+      alert("Failed to update event");
+    }
+
+  const CalendarView = ({ view, date, events, onOpenChannel, onEdit, onDelete }) => {
+    if (view === "day") {
+      const dayStart = startOfDay(date);
+      const dayEnd = endOfDay(date);
+      const dayEvents = events.filter(ev => {
+        const s = new Date(ev.start_time);
+        return s >= dayStart && s <= dayEnd;
+      }).sort((a,b) => new Date(a.start_time) - new Date(b.start_time));
+      return (
+        <div className="max-w-5xl mx-auto">
+          <h4 className="text-white font-semibold mb-2">{date.toDateString()}</h4>
+          {dayEvents.length === 0 ? (
+            <div className="text-gray-400">No events today</div>
+          ) : (
+            <div className="space-y-2">
+              {dayEvents.map(ev => (
+                <CalendarEventCard key={ev.id} ev={ev} onOpenChannel={onOpenChannel} onEdit={onEdit} onDelete={onDelete} />
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    }
+  
+    if (view === "week") {
+      const weekStart = addDays(date, -((date.getDay() + 6) % 7));
+      const weekDays = Array.from({length: 7}, (_,i) => addDays(weekStart, i));
+      return (
+        <div className="max-w-6xl mx-auto">
+          <div className="grid grid-cols-7 gap-2">
+            {weekDays.map(d => {
+              const dayEvents = events.filter(ev => isSameDay(new Date(ev.start_time), d));
+              return (
+                <div key={d.toISOString()} className="cosmic-panel p-3 rounded min-h-[120px]">
+                  <div className="text-gray-300 text-sm mb-2">{d.toDateString()}</div>
+                  <div className="space-y-1">
+                    {dayEvents.map(ev => (
+                      <div
+                        key={ev.id}
+                        className="text-xs p-2 rounded cursor-pointer"
+                        style={{background: `${(ev.color || "#9F86FF")}20`, borderLeft: `3px solid ${ev.color || "#9F86FF"}`}}
+                        onClick={() => onEdit(ev)}
+                      >
+                        <div className="text-white truncate">{ev.title}</div>
+                        <div className="text-gray-400">
+                          {new Date(ev.start_time).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      );
+    }
+  
+    // Month view
+    const gridStart = startOfMonthGrid(date);
+    const days = Array.from({length: 42}, (_,i) => addDays(gridStart, i)); // 6 rows
+  
+    return (
+      <div className="max-w-6xl mx-auto">
+        <div className="grid grid-cols-7 gap-2">
+          {["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map(d => (
+            <div key={d} className="text-center text-gray-400 text-sm">{d}</div>
+          ))}
+        </div>
+        <div className="grid grid-cols-7 gap-2">
+          {days.map(d => {
+            const inMonth = d.getMonth() === date.getMonth();
+            const dayEvents = events.filter(ev => isSameDay(new Date(ev.start_time), d));
+            return (
+              <div key={d.toISOString()} className={`cosmic-panel p-3 rounded min-h-[120px] ${inMonth ? "" : "opacity-50"}`}>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="text-gray-300 text-sm">{d.getDate()}</div>
+                </div>
+                <div className="space-y-1">
+                  {dayEvents.slice(0,3).map(ev => (
+                    <div
+                      key={ev.id}
+                      className="text-xs p-2 rounded cursor-pointer"
+                      style={{background: `${(ev.color || "#9F86FF")}20`, borderLeft: `3px solid ${ev.color || "#9F86FF"}`}}
+                      onClick={() => onEdit(ev)}
+                    >
+                      <div className="text-white truncate">{ev.title}</div>
+                      <div className="text-gray-400">
+                        {new Date(ev.start_time).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}
+                      </div>
+                    </div>
+                  ))}
+                  {dayEvents.length > 3 && (
+                    <div className="text-xs text-astral-accent cursor-pointer">
+                      +{dayEvents.length - 3} more
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+  
+  const CalendarEventCard = ({ ev, onOpenChannel, onEdit, onDelete }) => (
+    <div className="cosmic-panel p-4 rounded-lg border-l-4" style={{borderColor: ev.color || "#9F86FF"}}>
+      <div className="flex items-center justify-between">
+        <div>
+          <h4 className="font-bold text-white mb-1">{ev.title}</h4>
+          {ev.description && <p className="text-gray-300 text-sm mb-2">{ev.description}</p>}
+          <div className="flex items-center text-sm text-gray-400 space-x-4">
+            <span>{new Date(ev.start_time).toLocaleString()}</span>
+            <span>→</span>
+            <span>{new Date(ev.end_time).toLocaleString()}</span>
+            {ev.channel_link && (
+              <button
+                className="text-astral-accent hover:text-white underline"
+                onClick={() => onOpenChannel(ev.channel_link)}
+              >
+                Open Channel
+              </button>
+            )}
+          </div>
+        </div>
+        <div className="space-x-2">
+          <button className="px-3 py-1 bg-astral-dark rounded" onClick={() => onEdit(ev)}>Edit</button>
+          <button className="px-3 py-1 bg-red-700 rounded" onClick={() => onDelete(ev)}>Delete</button>
+        </div>
+      </div>
+    </div>
+  );
+
+  };
+  
+  const deleteEventById = async (eventId) => {
+    try {
+      await axios.delete(`${API}/servers/${selectedServer.id}/events/${eventId}`, { withCredentials: true });
+      setEvents(evts => evts.filter(e => e.id !== eventId));
+    } catch (err) {
+      console.error("Error deleting event:", err);
+      alert("Failed to delete event");
+    }
+  };
+
   
   // WebRTC State
   const [inVoiceChannel, setInVoiceChannel] = useState(false);
@@ -119,6 +300,68 @@ const Dashboard = ({ user, onLogout }) => {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  
+  // Ask permission once for notifications (if not already requested)
+  useEffect(() => {
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+  }, []);
+  
+  const reminderTimersRef = useRef({}); // eventId -> timeoutId
+  
+  useEffect(() => {
+    // Clear old timers
+    Object.values(reminderTimersRef.current).forEach(clearTimeout);
+    reminderTimersRef.current = {};
+  
+    if (!events || !events.length) return;
+    const now = Date.now();
+  
+    events.forEach(ev => {
+      const startTs = new Date(ev.start_time).getTime();
+      const remindAt = startTs - 5 * 60 * 1000; // 5 minutes before
+      if (remindAt > now) {
+        const delay = remindAt - now;
+        const t = setTimeout(() => {
+          const title = `Upcoming: ${ev.title}`;
+          const body = `${new Date(ev.start_time).toLocaleString()}${ev.channel_link ? " · Click to open channel" : ""}`;
+          // Desktop notification
+          if ("Notification" in window && Notification.permission === "granted") {
+            const n = new Notification(title, { body });
+            n.onclick = () => {
+              if (ev.channel_link) {
+                const ch = channels.find(c => c.id === ev.channel_link);
+                if (ch) {
+                  setSelectedChannel(ch);
+                  setCurrentView("channels");
+                }
+              }
+              window.focus();
+            };
+          } else {
+            // In-app fallback
+            alert(`${title}\n${body}`);
+            if (ev.channel_link) {
+              const ch = channels.find(c => c.id === ev.channel_link);
+              if (ch) {
+                setSelectedChannel(ch);
+                setCurrentView("channels");
+              }
+            }
+          }
+        }, delay);
+        reminderTimersRef.current[ev.id] = t;
+      }
+    });
+  
+    return () => {
+      Object.values(reminderTimersRef.current).forEach(clearTimeout);
+      reminderTimersRef.current = {};
+    };
+  }, [events, channels, setSelectedChannel, setCurrentView]);
+
 
   const loadServers = async () => {
     try {
@@ -1095,6 +1338,7 @@ const Dashboard = ({ user, onLogout }) => {
         </div>
       ) : currentView === "calendar" ? (
         <div className="flex-1 flex flex-col z-10">
+          {/* Header */}
           <div className="h-16 cosmic-panel-light flex items-center justify-between px-6 border-b border-astral-hover">
             <div className="flex items-center">
               <span className="text-xl mr-2">📅</span>
@@ -1107,22 +1351,91 @@ const Dashboard = ({ user, onLogout }) => {
               + New Event
             </button>
           </div>
+      
+          {/* Controls */}
+          <div className="flex items-center justify-between px-6 py-3">
+            <div className="space-x-2">
+              <button
+                className={`px-3 py-1 rounded ${calendarView === "month" ? "bg-astral-accent text-white" : "bg-astral-dark text-gray-300"}`}
+                onClick={() => setCalendarView("month")}
+              >
+                Month
+              </button>
+              <button
+                className={`px-3 py-1 rounded ${calendarView === "week" ? "bg-astral-accent text-white" : "bg-astral-dark text-gray-300"}`}
+                onClick={() => setCalendarView("week")}
+              >
+                Week
+              </button>
+              <button
+                className={`px-3 py-1 rounded ${calendarView === "day" ? "bg-astral-accent text-white" : "bg-astral-dark text-gray-300"}`}
+                onClick={() => setCalendarView("day")}
+              >
+                Day
+              </button>
+            </div>
+            <div className="space-x-2">
+              <button className="px-3 py-1 bg-astral-dark rounded" onClick={() => setCalendarDate(addDays(calendarDate, -(calendarView === "month" ? 30 : calendarView === "week" ? 7 : 1)))}>Prev</button>
+              <button className="px-3 py-1 bg-astral-dark rounded" onClick={() => setCalendarDate(new Date())}>Today</button>
+              <button className="px-3 py-1 bg-astral-dark rounded" onClick={() => setCalendarDate(addDays(calendarDate, (calendarView === "month" ? 30 : calendarView === "week" ? 7 : 1)))}>Next</button>
+            </div>
+          </div>
+      
+          {/* Calendar Grid + Upcoming */}
           <div className="flex-1 overflow-y-auto p-6">
-            <div className="max-w-4xl mx-auto">
+            <CalendarView
+              view={calendarView}
+              date={calendarDate}
+              events={events}
+              onOpenChannel={(channel_id) => {
+                const ch = channels.find(c => c.id === channel_id);
+                if (ch) {
+                  setSelectedChannel(ch);
+                  setCurrentView("channels");
+                }
+              }}
+              onEdit={(ev) => setEditingEvent(ev)}
+              onDelete={(ev) => deleteEventById(ev.id)}
+            />
+      
+            {/* Upcoming Event List Below Grid */}
+            <div className="max-w-4xl mx-auto mt-8">
               <h3 className="text-xl font-bold text-white mb-4">Upcoming Events</h3>
               {events.length === 0 ? (
                 <p className="text-gray-400 text-center py-8">No events scheduled</p>
               ) : (
                 <div className="space-y-3">
-                  {events.map(event => (
-                    <div key={event.id} className="cosmic-panel p-4 rounded-lg border-l-4" style={{ borderColor: event.color }}>
-                      <h4 className="font-bold text-white mb-1">{event.title}</h4>
-                      {event.description && <p className="text-gray-300 text-sm mb-2">{event.description}</p>}
-                      <div className="flex items-center text-sm text-gray-400 space-x-4">
-                        <span>🕐 {new Date(event.start_time).toLocaleString()}</span>
-                        {event.assigned_to.length > 0 && (
-                          <span>👥 {event.assigned_to.length} assigned</span>
-                        )}
+                  {events
+                    .slice()
+                    .sort((a,b) => new Date(a.start_time) - new Date(b.start_time))
+                    .map(ev => (
+                    <div key={ev.id} className="cosmic-panel p-4 rounded-lg border-l-4" style={{borderColor: ev.color || "#9F86FF"}}>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="font-bold text-white mb-1">{ev.title}</h4>
+                          {ev.description && <p className="text-gray-300 text-sm mb-2">{ev.description}</p>}
+                          <div className="flex items-center text-sm text-gray-400 space-x-4">
+                            <span>{new Date(ev.start_time).toLocaleString()}</span>
+                            <span>→</span>
+                            <span>{new Date(ev.end_time).toLocaleString()}</span>
+                            {ev.channel_link && (
+                              <button
+                                className="text-astral-accent hover:text-white underline"
+                                onClick={() => {
+                                  const ch = channels.find(c => c.id === ev.channel_link);
+                                  if (ch) {
+                                    setSelectedChannel(ch);
+                                    setCurrentView("channels");
+                                  }
+                                }}
+                              >Open Channel</button>
+                            )}
+                          </div>
+                        </div>
+                        <div className="space-x-2">
+                          <button className="px-3 py-1 bg-astral-dark rounded" onClick={() => setEditingEvent(ev)}>Edit</button>
+                          <button className="px-3 py-1 bg-red-700 rounded" onClick={() => deleteEventById(ev.id)}>Delete</button>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -1130,6 +1443,23 @@ const Dashboard = ({ user, onLogout }) => {
               )}
             </div>
           </div>
+          {/* Edit Event Modal */}
+          {editingEvent && (
+            <EventEditModal
+              event={editingEvent}
+              members={members}
+              channels={channels}
+              onClose={() => setEditingEvent(null)}
+              onSave={async (patch) => {
+                await updateEvent(editingEvent.id, patch);
+                setEditingEvent(null);
+              }}
+              onDelete={async () => {
+                await deleteEventById(editingEvent.id);
+                setEditingEvent(null);
+              }}
+            />
+          )}
         </div>
       ) : currentView === "tasks" ? (
         <div className="flex-1 flex flex-col z-10">
@@ -1504,6 +1834,7 @@ const Dashboard = ({ user, onLogout }) => {
           onClose={() => setShowCreateEvent(false)}
           onCreate={createEvent}
           members={members}
+          channels={channels}
         />
       )}
 
@@ -1528,12 +1859,14 @@ const Dashboard = ({ user, onLogout }) => {
 };
 
 // ===== PRODUCTIVITY MODALS =====
-const EventModal = ({ onClose, onCreate, members }) => {
+const EventModal = ({ onClose, onCreate, members, channels }) => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const [color, setColor] = useState("#9F86FF");
+  const [channelId, setChannelId] = useState("");
+
 
   const handleSubmit = () => {
     if (!title.trim() || !startTime || !endTime) return;
@@ -1543,7 +1876,8 @@ const EventModal = ({ onClose, onCreate, members }) => {
       start_time: new Date(startTime).toISOString(),
       end_time: new Date(endTime).toISOString(),
       color,
-      assigned_to: []
+      assigned_to: [],
+      channel_link: channelId || null
     });
   };
 
@@ -1587,6 +1921,19 @@ const EventModal = ({ onClose, onCreate, members }) => {
           onChange={(e) => setColor(e.target.value)}
           className="w-full h-10 rounded cursor-pointer mb-4"
         />
+        <label className="block text-gray-300 text-sm mb-1">Link to Channel (optional)</label>
+        <select
+          className="cosmic-input w-full px-4 py-2 rounded mb-4"
+          value={channelId}
+          onChange={e => setChannelId(e.target.value)}
+        >
+          <option value="">None</option>
+          {channels.map(c => (
+            <option key={c.id} value={c.id}>{c.name} ({c.type})</option>
+          ))}
+        </select>
+
+            
         <div className="flex space-x-2">
           <button
             onClick={handleSubmit}
@@ -1714,6 +2061,56 @@ const NoteModal = ({ onClose, onCreate }) => {
     </div>
   );
 };
+
+const EventEditModal = ({ event, onClose, onSave, onDelete, members, channels }) => {
+  const [title, setTitle] = useState(event.title);
+  const [description, setDescription] = useState(event.description || "");
+  const [startTime, setStartTime] = useState(new Date(event.start_time).toISOString().slice(0,16));
+  const [endTime, setEndTime] = useState(new Date(event.end_time).toISOString().slice(0,16));
+  const [color, setColor] = useState(event.color || "#9F86FF");
+  const [channelId, setChannelId] = useState(event.channel_link || "");
+
+  const handleSave = () => {
+    if (!title.trim()) return;
+    onSave({
+      title,
+      description,
+      start_time: new Date(startTime).toISOString(),
+      end_time: new Date(endTime).toISOString(),
+      color,
+      channel_link: channelId || null
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="cosmic-panel p-6 rounded-lg w-96 max-h-[80vh] overflow-y-auto">
+        <h2 className="text-xl font-bold mb-4 text-white">Edit Event</h2>
+        <input className="cosmic-input w-full px-4 py-2 rounded mb-3" value={title} onChange={e => setTitle(e.target.value)} placeholder="Event title" />
+        <textarea className="cosmic-input w-full px-4 py-2 rounded mb-3" rows={3} value={description} onChange={e => setDescription(e.target.value)} placeholder="Description (optional)" />
+        <label className="block text-gray-300 text-sm mb-1">Start Time</label>
+        <input type="datetime-local" className="cosmic-input w-full px-4 py-2 rounded mb-3" value={startTime} onChange={e => setStartTime(e.target.value)} />
+        <label className="block text-gray-300 text-sm mb-1">End Time</label>
+        <input type="datetime-local" className="cosmic-input w-full px-4 py-2 rounded mb-3" value={endTime} onChange={e => setEndTime(e.target.value)} />
+        <label className="block text-gray-300 text-sm mb-1">Color</label>
+        <input type="color" className="w-full h-10 rounded cursor-pointer mb-3" value={color} onChange={e => setColor(e.target.value)} />
+        <label className="block text-gray-300 text-sm mb-1">Link to Channel (optional)</label>
+        <select className="cosmic-input w-full px-4 py-2 rounded mb-4" value={channelId} onChange={e => setChannelId(e.target.value)}>
+          <option value="">None</option>
+          {channels.map(c => (
+            <option key={c.id} value={c.id}>{c.name} ({c.type})</option>
+          ))}
+        </select>
+        <div className="flex space-x-2">
+          <button className="cosmic-btn flex-1 py-2" onClick={handleSave}>Save</button>
+          <button className="cosmic-btn-secondary flex-1 py-2" onClick={onClose}>Cancel</button>
+        </div>
+        <button className="mt-3 w-full py-2 bg-red-700 rounded" onClick={onDelete}>Delete Event</button>
+      </div>
+    </div>
+  );
+};
+
 
 function App() {
   const [loading, setLoading] = useState(true);
