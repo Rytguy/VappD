@@ -6,6 +6,8 @@ const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 const WS_URL = BACKEND_URL.replace('https://', 'wss://').replace('http://', 'ws://');
 
+
+
 // ===== COMPONENTS =====
 const LoginPage = () => {
   const redirectUrl = encodeURIComponent(`${window.location.origin}/dashboard`);
@@ -27,6 +29,12 @@ const LoginPage = () => {
     </div>
   );
 };
+
+const [games, setGames] = useState([]);
+const [activeGame, setActiveGame] = useState(null);
+const [opponentId, setOpponentId] = useState(null); // Opponent user_id selection
+
+
 
 const Dashboard = ({ user, onLogout }) => {
   const [servers, setServers] = useState([]);
@@ -581,6 +589,50 @@ const Dashboard = ({ user, onLogout }) => {
           }
         });
     }
+
+    // Load games for the server (lobby refresh)
+    const loadGames = async () => {
+      if (!selectedServer) return;
+      const resp = await axios.get(`${API}/servers/${selectedServer.id}/games`, {withCredentials:true});
+      setGames(resp.data);
+    };
+    useEffect(() => { loadGames(); }, [selectedServer]);
+    
+    // Start a new Tic Tac Toe game
+    const startTicTacToe = async () => {
+      if (!opponentId) {
+        alert("You must select another member as opponent.");
+        return;
+      }
+      // Current user always first in player_ids
+      const player_ids = [user.id, opponentId];
+      const resp = await axios.post(`${API}/servers/${selectedServer.id}/games`, {
+        game_type: "tictactoe",
+        player_ids,
+      }, {withCredentials:true});
+      setActiveGame(resp.data);
+      loadGames();
+    };
+    
+    // Select an existing game to resume/view
+    const selectGame = async (game) => {
+      setActiveGame(game);
+    };
+    
+    // Submit a move
+    const makeTicTacToeMove = async (cellIdx) => {
+      if (!activeGame) return;
+      const resp = await axios.post(`${API}/games/${activeGame.id}/move`, {cell: cellIdx}, {withCredentials:true});
+      // Refetch updated game state
+      const updated = await axios.get(`${API}/servers/${selectedServer.id}/games`, {withCredentials:true});
+      const found = updated.data.find(g => g.id === activeGame.id);
+      setActiveGame(found);
+      if (resp.data.winner) {
+        alert(`Game Over! Winner: ${resp.data.winner === user.id ? "You" : "Opponent"}`);
+        loadGames();
+      }
+    };
+
 
     return pc;
   };
@@ -1147,6 +1199,83 @@ const Dashboard = ({ user, onLogout }) => {
             )}
           </div>
         </div>
+      ) : currentView === "games" ? (
+        <div className="p-6">
+          <h2 className="text-2xl font-bold text-white mb-4">Mini-Games Cosmos</h2>
+          <div className="mb-4 flex items-center">
+            <label className="mr-3 text-gray-300 font-medium">Opponent:</label>
+            <select
+              className="p-2 rounded cosmic-input"
+              value={opponentId || ""}
+              onChange={e => setOpponentId(e.target.value)}
+            >
+              <option value="">Select member...</option>
+              {members
+                .filter(m => m.id !== user.id)
+                .map(m => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}
+                  </option>
+                ))}
+            </select>
+            <button
+              onClick={startTicTacToe}
+              className="ml-4 cosmic-btn px-4 py-2"
+              disabled={!opponentId}
+            >
+              Start Tic Tac Toe
+            </button>
+          </div>
+          <div className="mb-6">
+            <h3 className="text-white text-lg mb-2">Active Games</h3>
+            <div className="space-y-2">
+              {games.length === 0 && <div className="text-gray-400">No games yet.</div>}
+              {games.map(g => (
+                <div key={g.id} className="flex items-center space-x-3 cosmic-panel rounded p-2">
+                  <div>
+                    <span className="font-bold text-astral-accent">{g.game_type}</span>
+                    {" — "}
+                    <span className="text-white">
+                      {members.find(m => m.id === g.player_ids[0])?.name}
+                      {" vs "}
+                      {members.find(m => m.id === g.player_ids[1])?.name}
+                    </span>
+                    {g.completed && <span className="ml-4 text-green-400">Finished</span>}
+                    {!g.completed && <span className="ml-4 text-yellow-400">In Progress</span>}
+                  </div>
+                  <button
+                    onClick={() => selectGame(g)}
+                    className="cosmic-btn px-2 py-1 text-xs"
+                  >
+                    {activeGame?.id === g.id ? "Viewing" : "View"}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+          {activeGame && (
+            <div>
+              <h3 className="text-white font-bold text-lg mb-2">
+                Tic Tac Toe Board{" "}
+                <span className="text-sm font-normal ml-2 text-gray-400">
+                  {activeGame.completed ? "Game Over" : `Turn: ${members.find(m => m.id === activeGame.state.turn)?.name || "??"}`}
+                </span>
+              </h3>
+              <TicTacToeBoard
+                board={activeGame.state.board}
+                myTurn={activeGame.state.turn === user.id && !activeGame.completed}
+                onMove={makeTicTacToeMove}
+              />
+              {activeGame.completed && (
+                <div className="text-astral-accent mt-3">
+                  Winner: {activeGame.result?.winner
+                    ? (members.find(m => m.id === activeGame.result.winner)?.name || "??")
+                    : "Draw"}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       ) : (
         <div className="flex-1 flex items-center justify-center z-10">
           <div className="text-center">
@@ -1200,6 +1329,13 @@ const Dashboard = ({ user, onLogout }) => {
                 🚪
               </button>
             </div>
+          </div>
+        </div>
+      ) : (
+        <div className="flex-1 flex items-center justify-center z-10">
+          <div className="text-center">
+            <div className="text-6xl mb-4">🌠</div>
+            <p className="text-gray-400">Select a channel to start chatting</p>
           </div>
         </div>
       )}
@@ -1572,5 +1708,25 @@ function App() {
 
   return <Dashboard user={user} onLogout={handleLogout} />;
 }
+
+function TicTacToeBoard({ board, onMove, myTurn }) {
+  return (
+    <div className="grid grid-cols-3 gap-2 w-44">
+      {board.map((cell, i) => (
+        <button
+          key={i}
+          disabled={cell || !myTurn}
+          className={`w-14 h-14 rounded cosmic-panel text-3xl font-bold
+            ${cell ? "text-astral-accent bg-astral-hover" : "text-white bg-astral-dark"}
+            ${!cell && myTurn ? "hover:bg-astral-accent hover:text-white cursor-pointer" : "cursor-not-allowed"}`}
+          onClick={() => onMove(i)}
+        >
+          {cell || ""}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 
 export default App;
