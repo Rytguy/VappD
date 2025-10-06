@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, WebSocket, WebSocketDisconnect, HTTPException, Cookie, Response, Request, Header
+from fastapi import FastAPI, APIRouter, WebSocket, WebSocketDisconnect, HTTPException, Cookie, Response, Request, Header, File, UploadFile
 from fastapi.responses import JSONResponse
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -15,6 +15,9 @@ import httpx
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
+
+UPLOAD_FOLDER = ROOT_DIR.parent / "frontend" / "public" / "uploads"
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 # MongoDB connection
 mongo_url = os.environ['MONGO_URL']
@@ -793,6 +796,16 @@ async def delete_note(server_id: str, note_id: str, authorization: Optional[str]
     
     await db.notes.delete_one({"id": note_id})
     return {"success": True}
+
+
+@api_router.post("/upload")
+async def upload_file(file: UploadFile = File(...)):
+    file_location = UPLOAD_FOLDER / file.filename
+    with open(file_location, "wb") as f:
+        f.write(await file.read())
+    url = f"/uploads/{file.filename}"
+    return JSONResponse({"url": url})
+
 
 
 # ===== MINI-GAMES API BELOW! =====
