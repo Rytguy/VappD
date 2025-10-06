@@ -69,6 +69,10 @@ const Dashboard = ({ user, onLogout }) => {
   const [selectedNote, setSelectedNote] = useState(null);
   const [calendarView, setCalendarView] = useState("month"); // day, week, month
 
+  const [replyTo, setReplyTo] = useState(null);
+  const [starModeEnabled, setStarModeEnabled] = useState(false);
+
+
   useEffect(() => {
     loadServers();
   }, []);
@@ -832,6 +836,18 @@ const Dashboard = ({ user, onLogout }) => {
 
               {/* Message Input */}
               <div className="p-4">
+                {replyTo && (
+                    <div className="px-4 pt-2 pb-1 bg-astral-dark border-t border-astral-hover flex items-center justify-between">
+                      <span className="text-sm text-gray-300">
+                        Replying to <span className="font-semibold text-white">{members.find(m => m.id === replyTo.user_id)?.name || "Unknown"}</span>:&nbsp;
+                        <span className="italic text-astral-accent truncate max-w-xs">{replyTo.content}</span>
+                      </span>
+                      <button onClick={() => setReplyTo(null)} className="text-gray-400 hover:text-white ml-4">
+                        ✕
+                      </button>
+                    </div>
+                  )}
+
                 <form onSubmit={sendMessage}>
                   <input
                     type="text"
