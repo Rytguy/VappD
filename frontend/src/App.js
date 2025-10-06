@@ -4,7 +4,10 @@ import axios from "axios";
 
 import { Picker } from 'emoji-mart'
 import 'emoji-mart/css/emoji-mart.css'
+
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -869,7 +872,12 @@ const Dashboard = ({ user, onLogout }) => {
                           <span className="font-semibold text-white">{sender?.name || "Unknown"}</span>
                           <span className="text-xs text-gray-400">{formatTime(message.created_at)}</span>
                         </div>
-                        <div className="text-gray-200">{message.content}</div>
+                        <div className="text-gray-200 break-words">
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                            {message.content}
+                          </ReactMarkdown>
+                        </div>
+
                         <div className="mt-1 flex space-x-2">
                           <button
                             className="text-xs px-2 py-1 bg-astral-dark text-astral-accent rounded hover:bg-astral-accent hover:text-white"
