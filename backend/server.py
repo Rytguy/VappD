@@ -412,6 +412,14 @@ async def get_messages(channel_id: str, limit: int = 50, authorization: Optional
     return [Message(**m) for m in messages]
 
 # backend/server.py
+
+@api_router.get("/channels/{channel_id}/threads")
+async def get_threads(channel_id: str):
+    messages = await db.messages.find({"channel_id": channel_id}).to_list(1000)
+    return messages  # Optionally, post-process to build a tree for UI
+
+
+# backend/server.py
 # Find: @api_router.post("/channels/{channel_id}/messages", ...)
 @api_router.post("/channels/{channel_id}/messages", response_model=Message)
 async def send_message(
