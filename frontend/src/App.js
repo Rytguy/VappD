@@ -2,6 +2,10 @@ import React, { useState, useEffect, useRef } from "react";
 import "@/App.css";
 import axios from "axios";
 
+import { Picker } from 'emoji-mart'
+import 'emoji-mart/css/emoji-mart.css'
+import ReactMarkdown from "react-markdown";
+
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 const WS_URL = BACKEND_URL.replace('https://', 'wss://').replace('http://', 'ws://');
@@ -49,6 +53,7 @@ const Dashboard = ({ user, onLogout }) => {
   const [showCreateChannel, setShowCreateChannel] = useState(false);
   const [newChannelName, setNewChannelName] = useState("");
   const [newChannelType, setNewChannelType] = useState("text");
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const wsRef = useRef(null);
   const messagesEndRef = useRef(null);
   
@@ -899,6 +904,32 @@ const Dashboard = ({ user, onLogout }) => {
                       </button>
                     </div>
                   )}
+                  {/* Emoji picker and message input */}
+                  <div className="flex items-end space-x-2">
+                    <button
+                      type="button"
+                      className="text-2xl px-2 py-1 rounded hover:bg-astral-hover transition"
+                      onClick={() => setShowEmojiPicker((v) => !v)}
+                      aria-label="Add emoji"
+                    >
+                      😊
+                    </button>
+                    <form className="flex-1" onSubmit={sendMessage}>
+                      <input
+                        type="text"
+                        value={messageInput}
+                        onChange={(e) => setMessageInput(e.target.value)}
+                        placeholder={`Message #${selectedChannel.name}`}
+                        className="w-full cosmic-input px-4 py-3 rounded-lg"
+                      />
+                    </form>
+                  </div>
+                  {showEmojiPicker && (
+                    <div className="absolute z-50">
+                      <Picker onSelect={emoji => setMessageInput(input => input + emoji.native)} theme="dark" />
+                    </div>
+                  )}
+                </div>
 
                 <form onSubmit={sendMessage}>
                   <input
