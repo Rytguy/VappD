@@ -53,6 +53,8 @@ class Channel(BaseModel):
     type: str  # text, voice, video
     created_at: datetime
 
+# backend/server.py 
+# Find class Message(BaseModel):
 class Message(BaseModel):
     id: str
     channel_id: str
@@ -60,7 +62,10 @@ class Message(BaseModel):
     content: str
     created_at: datetime
     edited: bool = False
-    reactions: Dict[str, List[str]] = {}  # emoji -> list of user_ids
+    reactions: Dict[str, List[str]] = {}
+    parent_id: Optional[str] = None      # <-- ADD THIS LINE
+    starred: bool = False                # <-- ADD THIS LINE
+
 
 class CreateServerRequest(BaseModel):
     name: str
