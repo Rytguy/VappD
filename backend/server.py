@@ -411,22 +411,32 @@ async def get_messages(channel_id: str, limit: int = 50, authorization: Optional
     messages.reverse()  # Return in chronological order
     return [Message(**m) for m in messages]
 
+# backend/server.py
+# Find: @api_router.post("/channels/{channel_id}/messages", ...)
 @api_router.post("/channels/{channel_id}/messages", response_model=Message)
-async def send_message(channel_id: str, request: SendMessageRequest, authorization: Optional[str] = Header(None), session_token: Optional[str] = Cookie(None)):
-    """Send a message to a channel"""
+async def send_message(
+    channel_id: str,
+    request: SendMessageRequest,
+    parent_id: Optional[str] = None,        # <-- ADD THIS ARG
+    is_starred: Optional[bool] = False,     # <-- ADD THIS ARG
+    authorization: Optional[str] = Header(None),
+    session_token: Optional[str] = Cookie(None)
+):
     user = await get_current_user(authorization, session_token)
     if not user:
         raise HTTPException(status_code=401, detail="Not authenticated")
-    
     message = Message(
         id=str(uuid.uuid4()),
         channel_id=channel_id,
         user_id=user.id,
         content=request.content,
-        created_at=datetime.now(timezone.utc)
+        created_at=datetime.now(timezone.utc),
+        parent_id=parent_id,       # <-- PASS THROUGH
+        starred=is_starred         # <-- PASS THROUGH
     )
     await db.messages.insert_one(message.dict())
     return message
+
 
 @api_router.post("/messages/{message_id}/reactions")
 async def add_reaction(message_id: str, request: AddReactionRequest, authorization: Optional[str] = Header(None), session_token: Optional[str] = Cookie(None)):
