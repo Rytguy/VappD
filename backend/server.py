@@ -64,7 +64,21 @@ class Message(BaseModel):
     edited: bool = False
     reactions: Dict[str, List[str]] = {}
     parent_id: Optional[str] = None      # <-- ADD THIS LINE
-    starred: bool = False                # <-- ADD THIS LINE
+    starred: bool = False  # <-- ADD THIS LINE
+
+
+# ==== MINI-GAME MODEL ====
+class GameSession(BaseModel):
+    id: str
+    server_id: str
+    channel_id: Optional[str]
+    game_type: str   # e.g., 'tictactoe'
+    player_ids: List[str]
+    state: dict        # e.g. for ttt: {board: [...], turn: ...}
+    result: Optional[dict] = None
+    created_at: datetime
+    updated_at: datetime
+    completed: bool = False
 
 
 class CreateServerRequest(BaseModel):
@@ -779,6 +793,77 @@ async def delete_note(server_id: str, note_id: str, authorization: Optional[str]
     
     await db.notes.delete_one({"id": note_id})
     return {"success": True}
+
+
+# ===== MINI-GAMES API BELOW! =====
+
+@api_router.post("/servers/{server_id}/games", response_model=GameSession)
+async def create_game(
+    server_id: str,
+    game_type: str,
+    player_ids: List[str],
+    authorization: Optional[str] = Header(None),
+    session_token: Optional[str] = Cookie(None)
+):
+    user = await get_current_user(authorization, session_token)
+    if not user or user.id not in player_ids:
+        raise HTTPException(status_code=401, detail="Not authorized")
+    # initial state for Tic Tac Toe
+    state = {"board": [None] * 9, "turn": player_ids[0], "history": []}
+    game = GameSession(
+        id=str(uuid.uuid4()),
+        server_id=server_id,
+        channel_id=None,
+        game_type=game_type,
+        player_ids=player_ids,
+        state=state,
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
+        completed=False
+    )
+    await db.games.insert_one(game.dict())
+    return game
+
+@api_router.get("/servers/{server_id}/games")
+async def list_games(server_id: str):
+    games = await db.games.find({"server_id": server_id}).sort("updated_at", -1).to_list(100)
+    return games
+
+@api_router.post("/games/{game_id}/move")
+async def make_move(
+    game_id: str,
+    move: dict,
+    authorization: Optional[str] = Header(None),
+    session_token: Optional[str] = Cookie(None)
+):
+    user = await get_current_user(authorization, session_token)
+    game = await db.games.find_one({"id": game_id})
+    if not game or user.id not in game["player_ids"]: raise HTTPException(status_code=403)
+    board = game["state"]["board"]
+    idx = move["cell"]
+    symbol = "X" if user.id == game["player_ids"][0] else "O"
+    if board[idx] is not None:
+        raise HTTPException(400, "Cell not empty")
+    board[idx] = symbol
+    game["state"]["history"].append({"player": user.id, "cell": idx, "symbol": symbol})
+    # Win logic
+    win_patterns = [
+        [0,1,2], [3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]
+    ]
+    winner = None
+    for pat in win_patterns:
+        s = {board[i] for i in pat}
+        if len(s) == 1 and list(s)[0]: winner = user.id
+    completed = bool(winner) or all(cell is not None for cell in board)
+    result = {"winner": winner} if winner else None
+    await db.games.update_one(
+        {"id": game_id},
+        {"$set": {"state": game["state"], "completed": completed, "result": result, "updated_at": datetime.now(timezone.utc)}}
+    )
+    return {"success": True, "winner": winner}
+
+
+
 
 # ===== VOICE/VIDEO CHANNEL ROUTES =====
 @api_router.post("/channels/{channel_id}/join")
