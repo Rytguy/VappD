@@ -324,29 +324,40 @@ const Dashboard = ({ user, onLogout }) => {
   };
 
   const sendMessage = async (e) => {
-    e.preventDefault();
-    if (!messageInput.trim()) return;
+  e.preventDefault();
+  if (!messageInput.trim()) return;
 
-    try {
-      const response = await axios.post(
-        `${API}/channels/${selectedChannel.id}/messages`,
-        { content: messageInput },
-        { withCredentials: true }
-      );
-      
-      // Broadcast via WebSocket
-      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-        wsRef.current.send(JSON.stringify({
-          type: "new_message",
-          message: response.data
-        }));
-      }
-      
-      setMessageInput("");
-    } catch (error) {
-      console.error("Error sending message:", error);
+  try {
+    const response = await axios.post(
+      `${API}/channels/${selectedChannel.id}/messages`,
+      {
+        content: messageInput,
+        parent_id: replyTo ? replyTo.id : null,      // <-- allow threading
+        is_starred: starModeEnabled,                 // <-- allow starred threads
+      },
+      { withCredentials: true }
+    );
+
+    // Reset reply/starring states and input box
+    setReplyTo(null);
+    setStarModeEnabled(false);
+    setMessageInput('');
+
+    // Broadcast via WebSocket
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({
+        type: "new_message",
+        message: response.data
+      }));
     }
-  };
+
+    // Optional: clear message input again for extra safety
+    setMessageInput('');
+  } catch (error) {
+    console.error("Error sending message:", error);
+  }
+};
+
 
   // ===== WEBRTC FUNCTIONS =====
   const joinVoiceChannel = async (channel) => {
@@ -798,6 +809,20 @@ const Dashboard = ({ user, onLogout }) => {
                           <span className="text-xs text-gray-400">{formatTime(message.created_at)}</span>
                         </div>
                         <div className="text-gray-200">{message.content}</div>
+                        <div className="mt-1 flex space-x-2">
+                          <button
+                            className="text-xs px-2 py-1 bg-astral-dark text-astral-accent rounded hover:bg-astral-accent hover:text-white"
+                            onClick={() => setReplyTo(message)}
+                          >
+                            Reply
+                          </button>
+                          <button
+                            className="text-xs px-2 py-1 bg-astral-dark text-astral-accent rounded hover:bg-astral-accent hover:text-white"
+                            onClick={() => setStarModeEnabled(v => !v)}
+                          >
+                            {starModeEnabled ? "Unstar" : "Star"}
+                          </button>
+                        </div>
                       </div>
                     </div>
                   );
