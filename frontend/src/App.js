@@ -37,13 +37,12 @@ const LoginPage = () => {
   );
 };
 
-const [games, setGames] = useState([]);
-const [activeGame, setActiveGame] = useState(null);
-const [opponentId, setOpponentId] = useState(null); // Opponent user_id selection
-
 
 
 const Dashboard = ({ user, onLogout }) => {
+  const [games, setGames] = useState([]);
+  const [activeGame, setActiveGame] = useState(null);
+  const [opponentId, setOpponentId] = useState(null); // Opponent user_id selection
   const [servers, setServers] = useState([]);
   const [selectedServer, setSelectedServer] = useState(null);
   const [channels, setChannels] = useState([]);
@@ -59,6 +58,8 @@ const Dashboard = ({ user, onLogout }) => {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const wsRef = useRef(null);
   const messagesEndRef = useRef(null);
+
+  const [uploading, setUploading] = useState(false); // <-- Place here with your other hooks
   
   // WebRTC State
   const [inVoiceChannel, setInVoiceChannel] = useState(false);
@@ -912,46 +913,85 @@ const Dashboard = ({ user, onLogout }) => {
                       </button>
                     </div>
                   )}
+                  
                   {/* Emoji picker and message input */}
-                  <div className="flex items-end space-x-2">
-                    <button
-                      type="button"
-                      className="text-2xl px-2 py-1 rounded hover:bg-astral-hover transition"
-                      onClick={() => setShowEmojiPicker((v) => !v)}
-                      aria-label="Add emoji"
-                    >
-                      😊
-                    </button>
-                    <form className="flex-1" onSubmit={sendMessage}>
-                      <input
-                        type="text"
-                        value={messageInput}
-                        onChange={(e) => setMessageInput(e.target.value)}
-                        placeholder={`Message #${selectedChannel.name}`}
-                        className="w-full cosmic-input px-4 py-3 rounded-lg"
-                      />
-                    </form>
-                  </div>
-                  {showEmojiPicker && (
-                    <div className="absolute z-50">
-                      <Picker onSelect={emoji => setMessageInput(input => input + emoji.native)} theme="dark" />
+                  <div className="p-4 relative">
+                    {/* (Optional) Reply bar if replying */}
+                    {replyTo && (
+                      <div className="px-4 pt-2 pb-1 bg-astral-dark border-t border-astral-hover flex items-center justify-between mb-2">
+                        <span className="text-sm text-gray-300">
+                          Replying to <span className="font-semibold text-white">{members.find(m => m.id === replyTo.user_id)?.name || "Unknown"}</span>:&nbsp;
+                          <span className="italic text-astral-accent truncate max-w-xs">{replyTo.content}</span>
+                        </span>
+                        <button onClick={() => setReplyTo(null)} className="text-gray-400 hover:text-white ml-4">
+                          ✕
+                        </button>
+                      </div>
+                    )}
+                    <div className="flex items-end space-x-2">
+                      {/* Emoji Button */}
+                      <button
+                        type="button"
+                        className="text-2xl px-2 py-1 rounded hover:bg-astral-hover transition"
+                        onClick={() => setShowEmojiPicker((v) => !v)}
+                        aria-label="Add emoji"
+                      >
+                        😊
+                      </button>
+                      {/* Message Input, File Upload, and Send Button All Together */}
+                      <form className="flex-1 flex items-center" onSubmit={sendMessage}>
+                        <input
+                          type="text"
+                          value={messageInput}
+                          onChange={(e) => setMessageInput(e.target.value)}
+                          placeholder={`Message #${selectedChannel.name}`}
+                          className="w-full cosmic-input px-4 py-3 rounded-lg"
+                          disabled={uploading}
+                        />
+                        {/* File Upload Button */}
+                        <label className="cursor-pointer px-2 py-2 rounded bg-astral-dark hover:bg-astral-hover text-xl ml-2 mb-0">
+                          📎
+                          <input
+                            type="file"
+                            accept="image/*,video/*,application/pdf,.txt,.md"
+                            style={{display: 'none'}}
+                            onChange={async (e) => {
+                              const file = e.target.files[0];
+                              if (!file) return;
+                              setUploading(true);
+                              const formData = new FormData();
+                              formData.append('file', file);
+                              const res = await fetch(`${API}/upload`, {
+                                method: 'POST',
+                                body: formData,
+                                credentials: 'include'
+                              });
+                              const { url } = await res.json();
+                              // Insert markdown for images and files
+                              const fileLine = url.match(/\.(jpg|jpeg|png|gif|bmp|webp)$/i)
+                                ? `![](${url})`
+                                : `[${file.name}](${url})`;
+                              setMessageInput(input => input ? `${input}\n${fileLine}` : fileLine);
+                              setUploading(false);
+                            }}
+                          />
+                        </label>
+                        {/* Send Button */}
+                        <button type="submit" className="cosmic-btn px-4 py-2 ml-2" disabled={uploading}>
+                          Send
+                        </button>
+                      </form>
                     </div>
-                  )}
-                </div>
+                    {/* Emoji Picker Popover */}
+                    {showEmojiPicker && (
+                      <div className="absolute z-50">
+                        <Picker onSelect={emoji => setMessageInput(input => input + emoji.native)} theme="dark" />
+                      </div>
+                    )}
+                    {/* Uploading Indicator */}
+                    {uploading && <div className="text-gray-400 text-xs mt-1">Uploading…</div>}
+                  </div>
 
-                <form onSubmit={sendMessage}>
-                  <input
-                    type="text"
-                    value={messageInput}
-                    onChange={(e) => setMessageInput(e.target.value)}
-                    placeholder={`Message #${selectedChannel.name}`}
-                    className="w-full cosmic-input px-4 py-3 rounded-lg"
-                  />
-                </form>
-              </div>
-            </>
-          ) : (
-            <>
               {/* Voice/Video Channel View */}
               <div className="flex-1 overflow-y-auto p-6">
                 {!inVoiceChannel ? (
